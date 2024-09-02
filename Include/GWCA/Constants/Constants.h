@@ -103,7 +103,9 @@ namespace GW {
             return bag;
         }
         inline Bag operator++(Bag& bag, int) {
-            return operator++(bag);
+            const Bag cpy = bag;
+            ++bag;
+            return cpy;
         }
 
         // Order of storage panes.
