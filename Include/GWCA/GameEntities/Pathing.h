@@ -6,7 +6,8 @@ namespace GW {
     struct PathingTrapezoid { // total: 0x30/48
         /* +h0000 */ uint32_t id;
         /* +h0004 */ PathingTrapezoid* adjacent[4];
-        /* +h0014 */ uint32_t h0014;
+        /* +h0014 */ uint16_t portal_left;
+        /* +h0016 */ uint16_t portal_right;
         /* +h0018 */ float XTL;
         /* +h001C */ float XTR;
         /* +h0020 */ float YT;
@@ -16,16 +17,63 @@ namespace GW {
     };
     static_assert(sizeof(PathingTrapezoid) == 48, "struct PathingTrapezoid has incorrect size");
 
+    struct Node {
+        /* +h0000 */ uint32_t type;   //XNode = 0, YNode = 1, SinkNode = 2
+        /* +h0004 */ uint32_t id;
+    };
+
+    struct XNode : Node { // type = 0
+        /* +h0008 */ Vec2f    pos;
+        /* +h0010 */ Vec2f    dir;
+        /* +h0018 */ Node     *left;
+        /* +h001C */ Node     *right;
+    };
+    static_assert(sizeof(XNode) == 32, "struct XNode has incorrect size");
+
+    struct YNode : Node { // type = 1
+        /* +h0008 */ Vec2f    pos;
+        /* +h0010 */ Node     *left;
+        /* +h0014 */ Node     *right;
+    };
+    static_assert(sizeof(YNode) == 24, "struct YNode has incorrect size");
+
+    struct SinkNode : Node { // type = 2
+        /* +h0008 */ PathingTrapezoid **trapezoid;
+    };
+    static_assert(sizeof(SinkNode) == 12, "struct SinkNode has incorrect size");
+
+    struct Portal { // total: 0x14/20
+        /* +h0000 */ uint16_t left_layer_id;
+        /* +h0002 */ uint16_t right_layer_id;
+        /* +h0004 */ uint32_t h0004;
+        /* +h0008 */ Portal   *pair;
+        /* +h000C */ uint32_t count;
+        /* +h0010 */ PathingTrapezoid **trapezoids;
+    };
+    static_assert(sizeof(Portal) == 20, "struct Portal has incorrect size");
+
     struct PathingMap { // total: 0x54/84
         /* +h0000 */ uint32_t zplane; // ground plane = UINT_MAX, rest 0 based index
         /* +h0004 */ uint32_t h0004;
         /* +h0008 */ uint32_t h0008;
         /* +h000C */ uint32_t h000C;
         /* +h0010 */ uint32_t h0010;
-        /* +h0014 */ uint32_t h0014;
+        /* +h0014 */ uint32_t trapezoid_count;
         /* +h0018 */ PathingTrapezoid* trapezoids;
-        /* +h001C */ uint32_t trapezoid_count;
-        /* +h0020 */ uint32_t h0020[13];
+        /* +h001C */ uint32_t sink_node_count;
+        /* +h0020 */ SinkNode *sink_nodes;
+        /* +h0024 */ uint32_t x_node_count;
+        /* +h0028 */ XNode    *x_nodes;
+        /* +h002C */ uint32_t y_node_count;
+        /* +h0030 */ YNode    *y_nodes;
+        /* +h0034 */ uint32_t h0034;
+        /* +h0038 */ uint32_t h0038;
+        /* +h003C */ uint32_t portal_count;
+        /* +h0040 */ Portal   *portals;
+        /* +h0044 */ Node     *root_node;
+        /* +h0048 */ uint32_t *h0048;
+        /* +h004C */ uint32_t *h004C;
+        /* +h0050 */ uint32_t *h0050;
     };
     static_assert(sizeof(PathingMap) == 84, "struct PathingMap has incorrect size");
 
@@ -57,8 +105,7 @@ namespace GW {
         /* +h0014 */ uint32_t uptime_seconds; // time since spawned
         /* +h0018 */ uint32_t h0018;
         /* +h001C */ uint32_t prop_index;
-        /* +h0020 */ Vec2f position;
-        /* +h0028 */ float z;
+        /* +h0020 */ Vec3f position;
         /* +h002C */ uint32_t model_file_id;
         /* +h0030 */ uint32_t h0030[2];
         /* +h0038 */ float rotation_angle;
