@@ -232,7 +232,7 @@ namespace {
                 GWCA_ASSERT(argv && argc);
                 wcs_tolower(*argv);
 
-                for (auto [command_str, callback_handler] : chat_command_hook_entries) {
+                for (const auto& [command_str, callback_handler] : chat_command_hook_entries) {
                     if (command_str != *argv)
                         continue;
                     status->blocked = true;
@@ -420,7 +420,7 @@ namespace {
 
         block_chat_timestamps.Reset();
 
-        while (chat_command_hook_entries.size()) {
+        while (!chat_command_hook_entries.empty()) {
             Chat::DeleteCommand(chat_command_hook_entries.begin()->first.c_str());
         }
     }

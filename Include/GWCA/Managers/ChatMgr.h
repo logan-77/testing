@@ -75,8 +75,7 @@ namespace GW {
         // Write to chat box, passing in encoded message and optional encoded sender. transient = true to bypass chat log.
         GWCA_API void WriteChatEnc(Channel channel, const wchar_t* message, const wchar_t* sender = nullptr, bool transient = false);
 
-
-        // Typedef for callbacks that handle chat commands; always blocks gw command
+        // callbacks that handle chat commands; always blocks gw command, unless you set hook_status->blocked = false;
         typedef void (__cdecl* ChatCommandCallback)(GW::HookStatus*, const wchar_t* cmd, int argc, const LPWSTR* argv);
         GWCA_API void CreateCommand(const wchar_t* cmd, ChatCommandCallback callback);
         GWCA_API void DeleteCommand(const wchar_t* cmd);
