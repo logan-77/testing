@@ -30,11 +30,29 @@ namespace GW {
     };
     struct Module;
     extern Module MapModule;
-
-    struct MinimapContext {
-        uint32_t params[0x12];
+    struct MissionMapSubContext {
+        uint32_t h0000[0xe]; // Could be 0x38, 0x3C or 0x68 depending on if observing etc.
     };
-    static_assert(sizeof(MinimapContext) == 0x48);
+    struct MissionMapSubContext2 {
+        uint32_t h0000[0x16];
+    };
+    static_assert(sizeof(MissionMapSubContext2) == 0x58);
+
+    struct MissionMapContext {
+        GW::Vec2f size; // Dimensions of the drawable area inside the mission map frame
+        uint32_t h0008;
+        GW::Vec2f panning_offset; // Percentage offset (-1.f to 1.f) relative to player_mission_map_pos
+        uint32_t frame_id;
+        GW::Vec2f player_mission_map_pos; // Position of player on the top down view of mission map (not in gwinches). Mission map centers on this point
+        GW::Array<MissionMapSubContext*> h0020;
+        uint32_t h0030;
+        uint32_t h0034;
+        uint32_t h0038;
+        MissionMapSubContext2* h003c;
+        uint32_t h0040;
+        uint32_t h0044;
+    };
+    static_assert(sizeof(MissionMapContext) == 0x48);
 
     struct WorldMapContext {
         uint32_t frame_id;
@@ -64,7 +82,7 @@ namespace GW {
     namespace Map {
 
 
-        GWCA_API MinimapContext* GetMinimapContext();
+        GWCA_API MissionMapContext* GetMissionMapContext();
 
         GWCA_API WorldMapContext* GetWorldMapContext();
 

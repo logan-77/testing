@@ -191,14 +191,16 @@ namespace GW {
     }
 
     constexpr float GetSquareDistance(const Vec3f& p1, const Vec3f& p2) {
-        return (p1.x - p2.x) * (p1.x - p2.x) +
-               (p1.y - p2.y) * (p1.y - p2.y) +
-               (p1.z - p2.z) * (p1.z - p2.z);
+        float dx = p1.x - p2.x;
+        float dy = p1.y - p2.y;
+        float dz = p1.z - p2.z;
+        return dx * dx + dy * dy + dz * dz;
     }
 
     constexpr float GetSquareDistance(const Vec2f& p1, const Vec2f& p2) {
-        return (p1.x - p2.x) * (p1.x - p2.x) +
-               (p1.y - p2.y) * (p1.y - p2.y);
+        float dx = p1.x - p2.x;
+        float dy = p1.y - p2.y;
+        return dx * dx + dy * dy;
     }
 
     float GetDistance(Vec3f p1, Vec3f p2);
