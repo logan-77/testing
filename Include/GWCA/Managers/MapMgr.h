@@ -34,14 +34,22 @@ namespace GW {
         uint32_t h0000[0xe]; // Could be 0x38, 0x3C or 0x68 depending on if observing etc.
     };
     struct MissionMapSubContext2 {
-        uint32_t h0000[0x16];
+        uint32_t h0000;
+        Vec2f player_mission_map_pos;
+        uint32_t h000c;
+        GW::Vec2f mission_map_size;
+        float unk;
+        GW::Vec2f mission_map_pan_offset;
+        GW::Vec2f mission_map_pan_offset2;
+        float unk2[2];
+        uint32_t unk3[9];
     };
     static_assert(sizeof(MissionMapSubContext2) == 0x58);
 
     struct MissionMapContext {
         GW::Vec2f size; // Dimensions of the drawable area inside the mission map frame
         uint32_t h0008;
-        GW::Vec2f panning_offset; // Percentage offset (-1.f to 1.f) relative to player_mission_map_pos
+        GW::Vec2f last_mouse_location; // Percentage offset (-1.f to 1.f) relative to player_mission_map_pos
         uint32_t frame_id;
         GW::Vec2f player_mission_map_pos; // Position of player on the top down view of mission map (not in gwinches). Mission map centers on this point
         GW::Array<MissionMapSubContext*> h0020;

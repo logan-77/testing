@@ -800,6 +800,24 @@ namespace GW {
                 (height - screen_bottom) * viewport_scale.y
             };
         }
+        GW::Vec2f FramePosition::GetContentTopLeft(const Frame* frame) const
+        {
+            const auto viewport_scale = GetViewportScale(frame);
+            const auto height = frame ? frame->position.viewport_height : viewport_height;
+            return {
+                content_left * viewport_scale.x,
+                (height - content_top) * viewport_scale.y
+            };
+        }
+        GW::Vec2f FramePosition::GetContentBottomRight(const Frame* frame) const
+        {
+            const auto viewport_scale = GetViewportScale(frame);
+            const auto height = frame ? frame->position.viewport_height : viewport_height;
+            return {
+                content_right * viewport_scale.x,
+                (height - content_bottom) * viewport_scale.y
+            };
+        }
         GW::Vec2f FramePosition::GetSizeOnScreen(const Frame* frame) const
         {
             const auto viewport_scale = GetViewportScale(frame);

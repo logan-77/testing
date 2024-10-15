@@ -109,6 +109,8 @@ namespace GW {
 
             [[nodiscard]] GW::Vec2f GetTopLeftOnScreen(const Frame* frame = nullptr) const;
             [[nodiscard]] GW::Vec2f GetBottomRightOnScreen(const Frame* frame = nullptr) const;
+            [[nodiscard]] GW::Vec2f GetContentTopLeft(const Frame* frame = nullptr) const;
+            [[nodiscard]] GW::Vec2f GetContentBottomRight(const Frame* frame = nullptr) const;
             [[nodiscard]] GW::Vec2f GetSizeOnScreen(const Frame* frame = nullptr) const;
             [[nodiscard]] GW::Vec2f GetViewportScale(const Frame* frame = nullptr) const;
         };

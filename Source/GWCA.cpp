@@ -17,6 +17,7 @@
 #include <GWCA/Context/ItemContext.h>
 #include <GWCA/Context/AgentContext.h>
 #include <GWCA/Context/AccountContext.h>
+#include <GWCA/Context/GameplayContext.h>
 
 #include <GWCA/Managers/Module.h>
 
@@ -54,7 +55,8 @@ namespace GW
 {
     static std::vector<Module *> modules;
     static uintptr_t base_ptr;
-    static uintptr_t PreGameContext_addr;
+    static uintptr_t PreGameContext_addr = 0;
+    static uintptr_t GameplayContext_addr = 0;
     static bool _initialized = false;
 
     bool Initialize()
@@ -91,6 +93,11 @@ namespace GW
         GWCA_INFO("[SCAN] base_ptr = %p, %p", (void *)base_ptr);
 
         HookBase::Initialize();
+
+        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\gmcontext.cpp", "!s_context", -0x9);
+        if (Verify(address))
+            GameplayContext_addr = *(uintptr_t*)address;
+
 
         address = Scanner::FindAssertion("p:\\code\\gw\\ui\\uipregame.cpp", "!s_scene", 0x34);
         if (Verify(address))
@@ -204,5 +211,8 @@ namespace GW
     {
         const auto* g = GetGameContext();
         return g ? g->trade : nullptr;
+    }
+    GameplayContext* GetGameplayContext() {
+        return *(GameplayContext**)GameplayContext_addr;
     }
 } // namespace GW
