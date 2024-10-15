@@ -579,6 +579,12 @@ namespace GW {
                 uint32_t mod_struct_size;
                 uint32_t* mod_struct;
             };
+            struct kInventorySlotUpdated {
+                uint32_t unk;
+                uint32_t item_id;
+                uint32_t bag_index;
+                uint32_t slot_id;
+            };
         }
 
         enum class NumberCommandLineParameter : uint32_t {
