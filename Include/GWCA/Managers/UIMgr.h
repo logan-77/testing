@@ -353,6 +353,7 @@ namespace GW {
             kObjectiveAdd               = 0x10000000 | 0x155, // wparam = UIPacket::kObjectiveAdd*
             kObjectiveComplete          = 0x10000000 | 0x156, // wparam = UIPacket::kObjectiveComplete*
             kObjectiveUpdated           = 0x10000000 | 0x157, // wparam = UIPacket::kObjectiveUpdated*
+            kTradeSessionStart          = 0x10000000 | 0x160, // wparam = { trade_state, player_number }
             kTradeSessionUpdated        = 0x10000000 | 0x166, // no args
             kCheckUIState               = 0x10000000 | 0x170, // Undocumented
             kCloseSettings              = 0x10000000 | 0x174, // Undocumented

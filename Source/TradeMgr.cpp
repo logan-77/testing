@@ -17,6 +17,9 @@ namespace {
         const auto c = GW::GetTradeContext();
         return c ? c->flags : 0;
     }
+    GW::UI::Frame* GetTradeWindow() {
+        return GW::UI::GetFrameByLabel(L"DlgTrade");
+    }
 }
 
 namespace GW {
@@ -34,18 +37,16 @@ namespace GW {
     }
 
     bool Trade::AcceptTrade() {
-        const auto btn = UI::GetChildFrame(UI::GetFrameByLabel(L"DlgTrade"), 2);
-        return btn && UI::ButtonClick(btn);
+        return UI::ButtonClick(UI::GetChildFrame(GetTradeWindow(), 2));
     }
 
     bool Trade::CancelTrade() {
-        const auto btn = UI::GetChildFrame(UI::GetFrameByLabel(L"DlgTrade"), 1);
-        return btn && UI::ButtonClick(btn);
+        const auto parent = GetTradeWindow();
+        return UI::ButtonClick(UI::GetChildFrame(parent, 0xd)) || UI::ButtonClick(UI::GetChildFrame(parent, 1)); // Decline or Cancel
     }
 
     bool Trade::ChangeOffer() {
-        const auto btn = UI::GetChildFrame(UI::GetFrameByLabel(L"DlgTrade"), 0);
-        return btn && UI::ButtonClick(btn);
+        return UI::ButtonClick(UI::GetChildFrame(GetTradeWindow(), 0));
     }
 
     bool Trade::SubmitOffer(uint32_t) {
