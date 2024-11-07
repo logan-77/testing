@@ -455,8 +455,8 @@ namespace GW {
 
             struct kKeyAction {
                 uint32_t gw_key;
-                uint32_t h0004;
-                uint32_t h0008;
+                uint32_t h0004 = 0x4000;
+                uint32_t h0008 = 0;
             };
             struct kMouseClick {
                 uint32_t mouse_button; // 0x0 = left, 0x1 = middle, 0x2 = right
@@ -990,9 +990,9 @@ namespace GW {
         // SendMessage for Guild Wars UI messages, most UI interactions will use this. Returns true if not blocked
         GWCA_API bool SendUIMessage(UI::UIMessage msgid, void* wParam = nullptr, void* lParam = nullptr, bool skip_hooks = false);
 
-        GWCA_API bool Keydown(ControlAction key);
-        GWCA_API bool Keyup(ControlAction key);
-        GWCA_API bool Keypress(ControlAction key);
+        GWCA_API bool Keydown(ControlAction key, Frame* target = nullptr);
+        GWCA_API bool Keyup(ControlAction key, Frame* target = nullptr);
+        GWCA_API bool Keypress(ControlAction key, Frame* target = nullptr);
 
         GWCA_API UI::WindowPosition* GetWindowPosition(UI::WindowID window_id);
         GWCA_API bool SetWindowVisible(UI::WindowID window_id, bool is_visible);

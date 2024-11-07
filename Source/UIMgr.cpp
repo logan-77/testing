@@ -120,12 +120,6 @@ namespace {
         GW::Hook::LeaveHook();
     }
 
-    struct KeypressPacket {
-        uint32_t key = 0;
-        uint32_t unk1 = 0x4000;
-        uint32_t unk2 = 0;
-    };
-
     // Global array of every frame drawn in the game atm
     GW::Array<UI::Frame*>* s_FrameArray = nullptr;
 
@@ -1012,15 +1006,15 @@ namespace GW {
             }
             return result;
         }
-        bool Keydown(ControlAction key) {
-            KeypressPacket action {key};
-            action.key = key;
-            return SendFrameUIMessage(GetButtonActionFrame(), UI::UIMessage::kKeyDown, &action);
+        bool Keydown(ControlAction key, Frame* frame) {
+            GW::UI::UIPacket::kKeyAction action;
+            action.gw_key = key;
+            return SendFrameUIMessage(frame ? frame : GetButtonActionFrame(), UI::UIMessage::kKeyDown, &action);
         }
-        bool Keyup(ControlAction key) {
-            KeypressPacket action;
-            action.key = key;
-            return SendFrameUIMessage(GetButtonActionFrame(), UI::UIMessage::kKeyUp, &action);
+        bool Keyup(ControlAction key, Frame* frame) {
+            GW::UI::UIPacket::kKeyAction action;
+            action.gw_key = key;
+            return SendFrameUIMessage(frame ? frame : GetButtonActionFrame(), UI::UIMessage::kKeyUp, &action);
         }
 
         bool SetWindowVisible(WindowID window_id,bool is_visible) {
@@ -1041,11 +1035,11 @@ namespace GW {
             return &window_positions_array[window_id];
         }
 
-        bool Keypress(ControlAction key) {
-            if (!Keydown(key))
+        bool Keypress(ControlAction key, Frame* frame) {
+            if (!Keydown(key, frame))
                 return false;
-            GW::GameThread::Enqueue([key] {
-                Keyup(key);
+            GW::GameThread::Enqueue([key, frame] {
+                Keyup(key, frame);
                 });
             return true;
         }
