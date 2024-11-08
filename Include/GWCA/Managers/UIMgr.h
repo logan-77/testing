@@ -339,6 +339,7 @@ namespace GW {
             kPartyRemoveHero            = 0x10000000 | 0x11d,
             kPartyAddPlayer             = 0x10000000 | 0x122,
             kPartyRemovePlayer          = 0x10000000 | 0x124,
+            kPartyDefeated              = 0x10000000 | 0x12d,
             kPartySearchInviteReceived  = 0x10000000 | 0x135, // wparam = UIPacket::kPartySearchInviteReceived*
             kPartySearchInviteSent      = 0x10000000 | 0x137,
             kPartyShowConfirmDialog     = 0x10000000 | 0x138, // wparam = UIPacket::kPartyShowConfirmDialog
@@ -467,6 +468,7 @@ namespace GW {
                 uint32_t child_frame_id;
                 uint32_t child_frame_id_dupe;
                 uint32_t current_state; // 0x5 = hovered, 0x6 = mouse down
+                void* wparam = 0;
             };
             struct kWriteToChatLog {
                 GW::Chat::Channel channel;

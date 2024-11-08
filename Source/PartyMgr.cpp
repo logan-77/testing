@@ -51,7 +51,6 @@ namespace {
     typedef void(__cdecl* Void_pt)();
     Void_pt LeaveParty_Func = 0;
     Void_pt PartySearchCancel_Func = 0;
-    Void_pt ReturnToOutpost_Func = 0;
 
     typedef void(__cdecl* FlagHeroAgent_pt)(uint32_t agent_id,GW::GamePos* pos);
     FlagHeroAgent_pt FlagHeroAgent_Func = 0;
@@ -94,7 +93,7 @@ namespace {
         if (address)
             TickButtonUICallback = (UI::UIInteractionCallback)Scanner::FunctionFromNearCall(*(uintptr_t*)address);
 
-        address = Scanner::Find("\x8b\x75\x0c\x83\xc4\x04\x83\x3e\x00\x0f?????\xff\x70\x20","xxxxxxxxxx?????xxx",0x12);
+        address = Scanner::Find("\x0f\x85\x26\x01\x00\x00\xff\x70\x20","xxxxxxxxx",0x9);
         SetDifficulty_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
         PartySearchSeek_Func = (PartySearchSeek_pt)Scanner::Find("\x8b\x78\x4c\x8d\x8f\x9c\x00\x00\x00", "xxxxxxxxx", -0xc);
@@ -129,10 +128,6 @@ namespace {
         PartyRejectInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xb6);
         PartyAcceptInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xcf);
 
-        address = Scanner::Find("\x8b\x46\x10\x25\xa7\x00\x00\x00\x3c\xa0", "xxxxxxxxxx", 0x12);
-        ReturnToOutpost_Func = (Void_pt)Scanner::FunctionFromNearCall(address);
-
-        GWCA_INFO("[SCAN] ReturnToOutpost_Func = %p", ReturnToOutpost_Func);
         GWCA_INFO("[SCAN] TickButtonUICallback Function = %p", TickButtonUICallback);
         GWCA_INFO("[SCAN] SetDifficulty_Func = %p", SetDifficulty_Func);
         GWCA_INFO("[SCAN] PartySearchSeek_Func = %p", PartySearchSeek_Func);
@@ -172,7 +167,6 @@ namespace {
         GWCA_ASSERT(PartyRejectInvite_Func);
         GWCA_ASSERT(PartyAcceptInvite_Func);
         GWCA_ASSERT(SetHeroBehavior_Func);
-        GWCA_ASSERT(ReturnToOutpost_Func);
         GWCA_ASSERT(LockPetTarget_Func);
 #endif
         HookBase::CreateHook((void**)&TickButtonUICallback, OnTickButtonUICallback, (void**)&TickButtonUICallback_Ret);
@@ -244,10 +238,7 @@ namespace GW {
         }
 
         bool ReturnToOutpost() {
-            if (!(ReturnToOutpost_Func && GetIsPartyDefeated() && GetIsLeader()))
-                return false;
-            ReturnToOutpost_Func();
-            return true;
+            return UI::ButtonClick(UI::GetChildFrame(UI::GetFrameByLabel(L"DlgRedirect"), 0));
         }
 
         bool GetIsPartyInHardMode() {
