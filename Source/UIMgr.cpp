@@ -598,12 +598,6 @@ namespace {
         GWCA_ASSERT(GetGameRendererMetric_Func);
 #endif
 
-        //SendUIMessage_Func = 0;
-        //CreateUIComponent_Func = 0;
-        SendFrameUIMessage_Func = 0;
-        SendFrameUIMessageById_Func = 0;
-        //DrawOnCompass_Func = 0;
-
         if(SendUIMessage_Func)
             HookBase::CreateHook((void**)&SendUIMessage_Func, OnSendUIMessage, (void **)&RetSendUIMessage);
         if(CreateUIComponent_Func)
