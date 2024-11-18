@@ -65,7 +65,7 @@ namespace GW
         modules.push_back(&GameThreadModule);
         modules.push_back(&RenderModule);
         modules.push_back(&UIModule);
-        /*modules.push_back(&CameraModule);
+        modules.push_back(&CameraModule);
         modules.push_back(&AgentModule);
         modules.push_back(&MapModule);
         modules.push_back(&ChatModule);
@@ -80,7 +80,7 @@ namespace GW
         modules.push_back(&SkillbarModule);
         modules.push_back(&FriendListModule);
         modules.push_back(&EventMgrModule);
-        modules.push_back(&QuestModule);*/
+        modules.push_back(&QuestModule);
 
         if (!MemoryMgr::Scan())
             return false;
