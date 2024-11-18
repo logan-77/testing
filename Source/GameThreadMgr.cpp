@@ -21,7 +21,14 @@ namespace {
     bool in_gamethread = false;
 
     std::vector<std::function<void()>> singleshot_callbacks;
-    std::unordered_map<HookEntry *, GameThread::GameThreadCallback> GameThread_callbacks;
+
+    // Callbacks are triggered by weighting
+    struct CallbackEntry {
+        int altitude;
+        HookEntry* entry;
+        GameThread::GameThreadCallback callback;
+    };
+    std::vector<CallbackEntry> GameThread_callbacks;
 
     void CallFunctions()
     {
@@ -39,7 +46,7 @@ namespace {
 
         HookStatus status;
         for (auto& it : GameThread_callbacks) {
-            it.second(&status);
+            it.callback(&status);
             ++status.altitude;
         }
         in_gamethread = false;
@@ -164,19 +171,32 @@ namespace GW {
 
     void GameThread::RegisterGameThreadCallback(
         HookEntry *entry,
-        const GameThreadCallback& callback)
+        const GameThreadCallback& callback,
+        int altitude)
     {
+        EnterCriticalSection(&mutex);
         RemoveGameThreadCallback(entry);
-        GameThread_callbacks.insert({entry, callback});
+
+        auto it = GameThread_callbacks.begin();
+        while (it != GameThread_callbacks.end()) {
+            if (it->altitude > altitude)
+                break;
+            it++;
+        }
+        GameThread_callbacks.insert(it, { altitude,entry, callback });
+        LeaveCriticalSection(&mutex);
     }
 
     void GameThread::RemoveGameThreadCallback(
         HookEntry *entry)
     {
-        auto it = GameThread_callbacks.find(entry);
+        auto it = GameThread_callbacks.begin();
         while (it != GameThread_callbacks.end()) {
-            GameThread_callbacks.erase(it);
-            it = GameThread_callbacks.find(entry);
+            if (it->entry == entry) {
+                GameThread_callbacks.erase(it);
+                break;
+            }
+            it++;
         }
     }
 } // namespace GW

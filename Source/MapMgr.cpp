@@ -145,7 +145,9 @@ namespace {
         if (address && Scanner::IsValidPtr(*(uintptr_t*)(address)))
             InstanceInfoPtr = *(InstanceInfo**)(address);
 
-        QueryAltitude_Func = (QueryAltitude_pt)Scanner::Find("\x8b\x58\x14\xff\x73\x78\xe8\x28\xbc\x02\x00\x83\xc4\x04\x85\xc0", "xxxxxxx????xxxxx", -0xd);
+        address = Scanner::Find("\xd9\x06\x8d\x45\xc8\x83\xc4\x10", "xxxxxxxx", -0x5);
+        QueryAltitude_Func = (QueryAltitude_pt)Scanner::FunctionFromNearCall(address);
+
         address = Scanner::Find("\x74\x1d\x68\xa9\x01\x00\x00", "xxxxxxx");
         if (address) {
             // Theres a tolerance check in the QueryAltitude call stack, basically throws an assertion if the altitude found is less than 0.0f
@@ -155,10 +157,7 @@ namespace {
         address = Scanner::Find("\xa9\x00\x00\x10\x00\x74\x3a", "xxxxxxx");
         CancelEnterChallengeMission_Func = (Void_pt)Scanner::FunctionFromNearCall(address + 0x19);
         EnterChallengeMission_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x51);
-        if (EnterChallengeMission_Func) {
-            GW::HookBase::CreateHook((void**)&EnterChallengeMission_Func, OnEnterChallengeMission_Hook, (void**)&EnterChallengeMission_Ret);
-            UI::RegisterUIMessageCallback(&EnterChallengeMission_Entry, UI::UIMessage::kSendEnterMission, OnEnterChallengeMission_UIMessage, 0x1);
-        }
+
 
         address = Scanner::Find("\x83\xc0\x0c\x41\x3d\x68\x01\x00\x00", "xxxxxxxxx");
         if (address) {
@@ -166,15 +165,11 @@ namespace {
             map_type_instance_infos_size = (*(uint32_t*)(address + 5)) / sizeof(MapTypeInstanceInfo);
         }
 
-        WorldMap_UICallback_Func = (UI::UIInteractionCallback)GW::Scanner::Find("\x83\xe8\x04\x83\xf8\x42", "xxxxxx", -0x2b);
-        if (WorldMap_UICallback_Func) {
-            GW::HookBase::CreateHook((void**)&WorldMap_UICallback_Func, OnWorldMap_UICallback, (void**)&WorldMap_UICallback_Ret);
-        }
+        WorldMap_UICallback_Func = (UI::UIInteractionCallback)GW::Scanner::ToFunctionStart(GW::Scanner::Find("\x83\xe8\x04\x83\xf8\x42", "xxxxxx"));
 
-        MissionMap_UICallback_Func = (UI::UIInteractionCallback)GW::Scanner::Find("\x81\xfb\x67\x01\x00\x10", "xxxxxx", -0x1a);
-        if (MissionMap_UICallback_Func) {
-            GW::HookBase::CreateHook((void**)&MissionMap_UICallback_Func, OnMissionMap_UICallback, (void**)&MissionMap_UICallback_Ret);
-        }
+
+        MissionMap_UICallback_Func = (UI::UIInteractionCallback)GW::Scanner::ToFunctionStart(GW::Scanner::Find("\x81\xfb\x67\x01\x00\x10", "xxxxxx"));
+
 
         GWCA_INFO("[SCAN] Minimap_UICallback_Func = %p", WorldMap_UICallback_Func);
         GWCA_INFO("[SCAN] WorldMap_UICallback_Func = %p", WorldMap_UICallback_Func);
@@ -193,9 +188,18 @@ namespace {
         GWCA_ASSERT(area_info_addr);
         GWCA_ASSERT(InstanceInfoPtr);
         GWCA_ASSERT(QueryAltitude_Func);
+        GWCA_ASSERT(bypass_tolerance_patch.IsValid());
         GWCA_ASSERT(EnterChallengeMission_Func);
         GWCA_ASSERT(CancelEnterChallengeMission_Func);
 #endif
+        if (WorldMap_UICallback_Func)
+            GW::HookBase::CreateHook((void**)&WorldMap_UICallback_Func, OnWorldMap_UICallback, (void**)&WorldMap_UICallback_Ret);
+        if (MissionMap_UICallback_Func)
+            GW::HookBase::CreateHook((void**)&MissionMap_UICallback_Func, OnMissionMap_UICallback, (void**)&MissionMap_UICallback_Ret);
+        if (EnterChallengeMission_Func) {
+            GW::HookBase::CreateHook((void**)&EnterChallengeMission_Func, OnEnterChallengeMission_Hook, (void**)&EnterChallengeMission_Ret);
+            UI::RegisterUIMessageCallback(&EnterChallengeMission_Entry, UI::UIMessage::kSendEnterMission, OnEnterChallengeMission_UIMessage, 0x1);
+        }
     }
     void EnableHooks() {
         if (EnterChallengeMission_Func)

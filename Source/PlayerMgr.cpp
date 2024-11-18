@@ -30,19 +30,31 @@ namespace {
     typedef void(__cdecl* DepositFaction_pt)(uint32_t always_0, uint32_t allegiance, uint32_t amount);
     DepositFaction_pt DepositFaction_Func;
 
+
     GW::TitleClientData* title_data = 0;
 
     void Init() {
-        DWORD address = 0;
+        uintptr_t address = 0;
 
-        address = Scanner::Find("\x8b\x4e\x08\x6a\x00\x68\x00\x83\x01\x00", "xxxxxxxxxx", -0x31); // UI::UIInteractionCallback for title list
-        RemoveActiveTitle_Func = (Void_pt)Scanner::FunctionFromNearCall(address + 0x1d6);
-        SetActiveTitle_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x1c8);
+        address = GW::Scanner::FindAssertion("AttribTitles.cpp", "!*hdr.param");
+        if (address)
+            address = GW::Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64); // UI::UIInteractionCallback for title row
+        if (address)
+            address = Scanner::FindInRange("\xff\x76\x08\xe8", "xxxx", 3, address, address + 0x3ff);
+        SetActiveTitle_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
+        if (SetActiveTitle_Func) {
+            address = (uintptr_t)SetActiveTitle_Func;
+            address = Scanner::FindInRange("\x55\x8b\xec\x51", "xxxx", 0, address + 0x10, address + 0xff);
+            if (address)
+                RemoveActiveTitle_Func = (Void_pt)address; // Remove active title is the next cdecl in memory
+        }
 
         address = Scanner::Find("\x68\x88\x13\x00\x00\xff\x76\x0c\x6a\x00", "xxxxxxxxxx", 0xa); // UI::UIInteractionCallback for entering player name for faction donation
         DepositFaction_Func = (DepositFaction_pt)Scanner::FunctionFromNearCall(address);
 
-        title_data = *(TitleClientData**)Scanner::FindAssertion("p:\\code\\gw\\const\\consttitle.cpp", "index < arrsize(s_titleClientData)", 0x12);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstTitle.cpp", "index < arrsize(s_titleClientData)", 0x12);
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::RDATA))
+            title_data = *(TitleClientData**)address;
 
         GWCA_INFO("[SCAN] title_data = %p", title_data);
         GWCA_INFO("[SCAN] RemoveActiveTitle_Func = %p", RemoveActiveTitle_Func);
@@ -53,6 +65,7 @@ namespace {
         GWCA_ASSERT(RemoveActiveTitle_Func);
         GWCA_ASSERT(SetActiveTitle_Func);
         GWCA_ASSERT(DepositFaction_Func);
+        GWCA_ASSERT(title_data);
 #endif
     }
 }

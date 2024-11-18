@@ -15,6 +15,8 @@ namespace GW {
     extern Module UIModule;
 
     enum class CallTargetType : uint32_t;
+    enum class WorldActionId : uint32_t;
+    typedef uint32_t AgentID;
 
     namespace Constants {
         enum class Language;
@@ -56,9 +58,11 @@ namespace GW {
 
         struct ChangeTargetUIMsg {
             uint32_t        manual_target_id;
-            uint32_t        unk1;
+            uint32_t        h0008;
             uint32_t        auto_target_id;
-            uint32_t        unk2;
+            uint32_t        h0010;
+            uint32_t        current_target_id;
+            uint32_t        h0018;
             // ...
         };
 
@@ -351,6 +355,7 @@ namespace GW {
             kQuestDetailsChanged        = 0x10000000 | 0x14A, // wparam = { quest_id, ... }
             kClientActiveQuestChanged   = 0x10000000 | 0x14C, // wparam = { quest_id, ... }. Triggered when the game requests the current quest to change
             kServerActiveQuestChanged   = 0x10000000 | 0x14E, // wparam = UIPacket::kServerActiveQuestChanged*. Triggered when the server requests the current quest to change
+            kUnknownQuestRelated        = 0x10000000 | 0x14F, 
             kObjectiveAdd               = 0x10000000 | 0x155, // wparam = UIPacket::kObjectiveAdd*
             kObjectiveComplete          = 0x10000000 | 0x156, // wparam = UIPacket::kObjectiveComplete*
             kObjectiveUpdated           = 0x10000000 | 0x157, // wparam = UIPacket::kObjectiveUpdated*
@@ -393,6 +398,7 @@ namespace GW {
             kSendGadgetDialog           = 0x30000000 | 0x15, // wparam = uint32_t agent_id // e.g. opening locked chest with a key
             kSendDialog                 = 0x30000000 | 0x16, // wparam = dialog_id // internal use
 
+
             kStartWhisper               = 0x30000000 | 0x17, // wparam = UIPacket::kStartWhisper*
             kGetSenderColor             = 0x30000000 | 0x18, // wparam = UIPacket::kGetColor* // Get chat sender color depending on channel, output object passed by reference
             kGetMessageColor            = 0x30000000 | 0x19, // wparam = UIPacket::kGetColor* // Get chat message color depending on channel, output object passed by reference
@@ -400,6 +406,7 @@ namespace GW {
             kLogChatMessage             = 0x30000000 | 0x1D, // wparam = UIPacket::kLogChatMessage*. Triggered when a message wants to be added to the persistent chat log.
             kRecvWhisper                = 0x30000000 | 0x1E, // wparam = UIPacket::kRecvWhisper*
             kPrintChatMessage           = 0x30000000 | 0x1F, // wparam = UIPacket::kPrintChatMessage*. Triggered when a message wants to be added to the in-game chat window.
+            kSendWorldAction            = 0x30000000 | 0x20, // wparam = UIPacket::kSendWorldAction*
         };
         enum class FlagPreference : uint32_t;
         enum class NumberPreference : uint32_t;
@@ -589,6 +596,11 @@ namespace GW {
                 uint32_t item_id;
                 uint32_t bag_index;
                 uint32_t slot_id;
+            };
+            struct kSendWorldAction {
+                WorldActionId action_id;
+                GW::AgentID agent_id;
+                bool suppress_call_target; // 1 to block "I'm targetting X", but will also only trigger if the key thing is down
             };
         }
 

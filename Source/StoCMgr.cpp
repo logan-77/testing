@@ -18,7 +18,7 @@ namespace {
     constexpr uint32_t STOC_HEADER_COUNT = 0x1e5;
 
     using namespace GW;
-    CRITICAL_SECTION mutex;
+    CRITICAL_SECTION mutex = { 0 };
 
     typedef bool (__cdecl *StoCHandler_pt)(Packet::StoC::PacketBase *pak);
     struct StoCHandler {
@@ -88,8 +88,15 @@ namespace {
     bool hooks_enabled = false;
     size_t stoc_handler_count = 0;
 
+    void SafeInitializeCriticalSection(CRITICAL_SECTION* mtx) {
+        if (!mtx || mtx->DebugInfo)
+            return;
+        InitializeCriticalSection(&mutex);
+    }
+
     bool OriginalHandler(Packet::StoC::PacketBase *packet) {
         bool ok = false;
+        SafeInitializeCriticalSection(&mutex);
         EnterCriticalSection(&mutex);
         if (game_server_handlers && original_functions && stoc_handler_count > packet->header) {
             original_functions[packet->header].handler_func(packet);
@@ -122,6 +129,7 @@ namespace {
     }
     // GW doesn't have the StoC array in RDATA; its built from the different StoC modules in DATA, so trying to find it before GW is fully loaded will cause undefined behaviour
     void InitOnGameThread() {
+        SafeInitializeCriticalSection(&mutex);
         EnterCriticalSection(&mutex);
         uintptr_t StoCHandler_Addr;
         {
@@ -144,8 +152,9 @@ namespace {
         EnableHooks();
         LeaveCriticalSection(&mutex);
     }
+
     void Init() {
-        InitializeCriticalSection(&mutex);
+        SafeInitializeCriticalSection(&mutex);
         // Requires GameThread module to be hooked!
         GameThread::Enqueue([] {
             InitOnGameThread();
@@ -176,6 +185,7 @@ namespace GW {
         int altitude)
     {
         bool success = false;
+        SafeInitializeCriticalSection(&mutex);
         EnterCriticalSection(&mutex);
         RemoveCallback(header, entry);
         if (packet_entries.size() <= header) {
@@ -204,6 +214,7 @@ namespace GW {
 
     size_t StoC::RemoveCallback(uint32_t header, HookEntry *entry) {
         size_t removed = 0;
+        SafeInitializeCriticalSection(&mutex);
         EnterCriticalSection(&mutex);
         if (header >= packet_entries.size()) {
             LeaveCriticalSection(&mutex);
@@ -225,6 +236,7 @@ namespace GW {
     size_t StoC::RemoveCallbacks(HookEntry* entry)
     {
         size_t removed = 0;
+        SafeInitializeCriticalSection(&mutex);
         EnterCriticalSection(&mutex);
         for (auto& header_entries : packet_entries) {
             auto it = header_entries.begin();

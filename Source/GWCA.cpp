@@ -63,24 +63,24 @@ namespace GW
     {
         if (_initialized) return true;
         modules.push_back(&GameThreadModule);
+        modules.push_back(&RenderModule);
         modules.push_back(&UIModule);
+        /*modules.push_back(&CameraModule);
+        modules.push_back(&AgentModule);
         modules.push_back(&MapModule);
         modules.push_back(&ChatModule);
         modules.push_back(&ItemModule);
         modules.push_back(&StoCModule);
-        modules.push_back(&AgentModule);
         modules.push_back(&GuildModule);
         modules.push_back(&PartyModule);
         modules.push_back(&TradeModule);
-        modules.push_back(&CameraModule);
         modules.push_back(&EffectModule);
         modules.push_back(&PlayerModule);
-        modules.push_back(&RenderModule);
         modules.push_back(&MerchantModule);
         modules.push_back(&SkillbarModule);
         modules.push_back(&FriendListModule);
         modules.push_back(&EventMgrModule);
-        modules.push_back(&QuestModule);
+        modules.push_back(&QuestModule);*/
 
         if (!MemoryMgr::Scan())
             return false;
@@ -94,15 +94,22 @@ namespace GW
 
         HookBase::Initialize();
 
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\gmcontext.cpp", "!s_context", -0x9);
-        if (Verify(address))
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmContext.cpp", "!s_context", -0x9);
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::DATA))
             GameplayContext_addr = *(uintptr_t*)address;
 
 
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\uipregame.cpp", "!s_scene", 0x34);
-        if (Verify(address))
+        address = Scanner::FindAssertion("UiPregame.cpp", "!s_scene", 0x34);
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address,Scanner::DATA))
             PreGameContext_addr = *(uintptr_t*)address;
+
+        GWCA_INFO("[SCAN] GameplayContext_addr = %p", GameplayContext_addr);
         GWCA_INFO("[SCAN] PreGameContext_addr = %p", PreGameContext_addr);
+
+#ifdef _DEBUG
+        GWCA_ASSERT(GameplayContext_addr);
+        GWCA_ASSERT(PreGameContext_addr);
+#endif
 
         for (const Module* module : modules) {
             GWCA_INFO("\nInitializing module '%s'\n", module->name);

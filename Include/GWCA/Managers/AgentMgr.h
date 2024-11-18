@@ -22,6 +22,15 @@ namespace GW {
     struct Module;
     extern Module AgentModule;
 
+    enum class WorldActionId : uint32_t {
+        InteractEnemy,
+        InteractPlayerOrOther,
+        InteractNPC,
+        InteractItem,
+        InteractTrade,
+        InteractGadget
+    };
+
     // NB: Theres more target types, and they're in the code, but not used for our context
     enum class CallTargetType : uint32_t {
         Following = 0x3,

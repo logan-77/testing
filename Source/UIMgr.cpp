@@ -311,14 +311,16 @@ namespace {
     void Init() {
         uintptr_t address;
 
-        address = Scanner::FindAssertion("p:\\code\\engine\\frame\\frmsg.cpp", "frame", -0x14);
-        if (address) {
+        address = Scanner::FindAssertion("\\Code\\Engine\\Frame\\FrMsg.cpp", "frame", -0x14);
+        if (address)
             s_FrameArray = *(GW::Array<UI::Frame*>**)address;
-        }
+        
+
 
         address = Scanner::Find("\x81\x0D\xFF\xFF\xFF\xFF\x00\x00\x08\x00", "xx????xxxx", 2);
-        if (Verify(address))
+        if(address && Scanner::IsValidPtr(*(uintptr_t*)address))
             WorldMapState_Addr = *(uintptr_t*)address;
+
 
         address = Scanner::Find("\x83\xfb\x46\x73\x14", "xxxxx", -0x34);
         if (address) {
@@ -326,34 +328,45 @@ namespace {
             SendFrameUIMessage_Func = (SendFrameUIMessage_pt)Scanner::FunctionFromNearCall(address + 0x67);
         }
 
+
         // @TODO: Grab the seeding context from memory, write this ourselves!
         address = Scanner::Find("\x85\xc0\x74\x0d\x6a\xff\x50","xxxxxxx",0x7);
         CreateHashFromWchar_Func = (CreateHashFromWchar_pt)GW::Scanner::FunctionFromNearCall(address);
+        
+
 
         // @TODO: Grab the relationship array from memory, write this ourselves!
-        address = Scanner::FindAssertion("p:\\code\\engine\\controls\\ctlview.cpp", "pageId", 0x19);
+        address = Scanner::FindAssertion("\\Code\\Engine\\Controls\\CtlView.cpp", "pageId", 0x19);
         GetChildFrameId_Func = (GetChildFrameId_pt)GW::Scanner::FunctionFromNearCall(address);
+        
 
         GetRootFrame_Func = (GetRootFrame_pt)Scanner::Find("\x05\xe0\xfe\xff\xff\xc3", "xxxxxx", -0x3c);
+        
 
         SendUIMessage_Func = (SendUIMessage_pt)Scanner::Find(
             "\xE8\x00\x00\x00\x00\x5D\xC3\x89\x45\x08\x5D\xE9", "x????xxxxxxx", -0x1A);
+        
 
         LoadSettings_Func = (LoadSettings_pt)Scanner::Find(
             "\xE8\x00\x00\x00\x00\xFF\x75\x0C\xFF\x75\x08\x6A\x00", "x????xxxxxxxx", -0x1E);
+        
 
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\uiroot.cpp", "!s_count++", -0xD);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\UiRoot.cpp", "!s_count++", -0xD);
         if (Verify(address))
             ui_drawn_addr = *(uintptr_t*)address - 0x10;
+        
 
         address = Scanner::Find(
             "\x75\x19\x6A\x00\xC7\x05\x00\x00\x00\x00\x01\x00", "xxxxxx????xx", +6);
-        if (Verify(address))
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
             shift_screen_addr = *(uintptr_t *)address;
+        
 
-        address = Scanner::FindAssertion("p:\\code\\gw\\pref\\prapi.cpp", "location < arrsize(s_flushDelay)", -0x12);
+
+        address = Scanner::FindAssertion("\\Code\\Gw\\Pref\\PrApi.cpp", "location < arrsize(s_flushDelay)", -0x12);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
             PreferencesInitialised_Addr = *(uintptr_t*)address;
+        
 
         address = GW::Scanner::Find("\x8d\x85\x78\xf7\xff\xff\x50", "xxxxxxx",0x7);
         address = GW::Scanner::FunctionFromNearCall(address); // BuildLoginStruct
@@ -366,25 +379,31 @@ namespace {
             GetEnumPreference_Func = (GetEnumPreference_pt)GW::Scanner::FunctionFromNearCall(address + 0x118);
             GetNumberPreference_Func = (GetNumberPreference_pt)GW::Scanner::FunctionFromNearCall(address + 0x13f);
         }
+
+
         
-        address = GW::Scanner::FindAssertion("p:\\code\\gw\\param\\param.cpp","value - PARAM_VALUE_FIRST < (sizeof(s_values) / sizeof((s_values)[0]))",-0x13);
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Param\\Param.cpp","value - PARAM_VALUE_FIRST < (sizeof(s_values) / sizeof((s_values)[0]))",-0x13);
         if (address && GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT)) {
             GetCommandLineNumber_Func = (GetNumberPreference_pt)address;
             CommandLineNumber_Buffer = *(uint32_t**)(address + 0x29);
             CommandLineNumber_Buffer += 0x30; // Offset for command line values
         }
 
-        SetInGameShadowQuality_Func = (SetInGameShadowQuality_pt)GW::Scanner::FindAssertion("p:\\code\\gw\\agentview\\avshadow.cpp","No valid case for switch variable 'value'",-0xca);
+
+        SetInGameShadowQuality_Func = (SetInGameShadowQuality_pt)GW::Scanner::FindAssertion("AvShadow.cpp","No valid case for switch variable 'value'",-0xca);
+        
+
 
         address = GW::Scanner::Find("\x83\xc4\x1c\x81\xfe\x20\x03\x00\x00","xxxxxxxxx", 0x31);
         SetInGameUIScale_Func = (SetInGameUIScale_pt)GW::Scanner::FunctionFromNearCall(address);
+        
 
-        address = GW::Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\charcreate\\charcreate.cpp", "msg.summaryBytes <= NET_CHARACTER_SUMMARY_MAX");
-        if (address) {
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\CharCreate\\CharCreate.cpp", "msg.summaryBytes <= NET_CHARACTER_SUMMARY_MAX");
+        if (address)
             SetStringPreference_Func = (SetStringPreference_pt)GW::Scanner::FunctionFromNearCall(address - 0x62);
-        }
+        
 
-        address = GW::Scanner::FindAssertion("p:\\code\\gw\\ui\\dialog\\dlgoptgr.cpp", "No valid case for switch variable 'quality'");
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Ui\\Dialog\\DlgOptGr.cpp", "No valid case for switch variable 'quality'");
         if (address) {
             SetEnumPreference_Func = (SetEnumPreference_pt)GW::Scanner::FunctionFromNearCall(address - 0x84);
             SetFlagPreference_Func = (SetFlagPreference_pt)GW::Scanner::FunctionFromNearCall(address - 0x3b);
@@ -393,14 +412,17 @@ namespace {
             TriggerTerrainRerender_Func = (TriggerTerrainRerender_pt)GW::Scanner::FunctionFromNearCall(address - 0x36);
         }
 
-        address = GW::Scanner::FindAssertion("p:\\code\\gw\\pref\\prconst.cpp", "pref < arrsize(s_enumInfo)", 0x15);
-        if (GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
+
+
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Pref\\PrConst.cpp", "pref < arrsize(s_enumInfo)", 0x15);
+        if (address && GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
             EnumPreferenceOptions_Addr = *(EnumPreferenceInfo**)address;
-        address = GW::Scanner::FindAssertion("p:\\code\\gw\\pref\\prconst.cpp", "pref < arrsize(s_valueInfo)", 0x15);
-        if (GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Pref\\PrConst.cpp", "pref < arrsize(s_valueInfo)", 0x15);
+        if (address && GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
             NumberPreferenceOptions_Addr = *(NumberPreferenceInfo**)address;
 
-        address = GW::Scanner::FindAssertion("p:\\code\\engine\\frame\\frtip.cpp", "CMsg::Validate(id)");
+
+        address = GW::Scanner::FindAssertion("\\Code\\Engine\\Frame\\FrTip.cpp", "CMsg::Validate(id)");
         if(address)
             address = GW::Scanner::FindInRange("\x56\x8B\xF7", "xxx", -0x13, address, address - 0x200);
         if (address) {
@@ -409,9 +431,13 @@ namespace {
             CurrentTooltipPtr = (UI::TooltipInfo***)(*(uintptr_t*)address);
         }
 
+
+
         address = Scanner::Find("\x8D\x4B\x28\x89\x73\x24\x8B\xD7", "xxxxxxx", +0x10);
-        if (Verify(address))
+        if (address && GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
             GameSettings_Addr = *(uintptr_t*)address;
+
+        
 
         // NB: 0x66 is the size of the window info array
         SetWindowVisible_Func = (SetWindowVisible_pt)Scanner::Find("\x8B\x75\x08\x83\xFE\x66\x7C\x19\x68", "xxxxxxxxx", -0x7);
@@ -423,6 +449,7 @@ namespace {
             }
         }
 
+
         ValidateAsyncDecodeStr = (ValidateAsyncDecodeStr_pt)Scanner::Find("\x83\xC4\x10\x3B\xC6\x5E\x74\x14", "xxxxxxxx", -0x70);
         AsyncDecodeStringPtr = (DoAsyncDecodeStr_pt)Scanner::Find("\x8b\x47\x14\x8d\x9f\x80\xfe\xff\xff", "xxxxxxxxx", -0x8);
 
@@ -430,7 +457,7 @@ namespace {
         SetVolume_Func = (SetVolume_pt)GW::Scanner::Find("\x8b\x75\x08\x83\xfe\x05\x72\x14\x68\x5b\x04\x00\x00\xba", "xxxxxxxxxxxxxx", -0x4);
 
         SetMasterVolume_Func = (SetMasterVolume_pt)GW::Scanner::Find("\xd9\x45\x08\x83\xc6\x1c\x83\xef\x01\x75\xea\x5f\xdd\xd8\x5e\x5d", "xxxxxxxxxxxxxxxx", -0x4b);
-        DrawOnCompass_Func = (DrawOnCompass_pt)GW::Scanner::FindAssertion("p:\\code\\gw\\char\\charmsg.cpp", "knotCount <= arrsize(message.knotData)",-0x2e);
+        DrawOnCompass_Func = (DrawOnCompass_pt)GW::Scanner::FindAssertion("\\Code\\Gw\\Char\\CharMsg.cpp", "knotCount <= arrsize(message.knotData)",-0x2e);
 
         CreateUIComponent_Func = (CreateUIComponent_pt)GW::Scanner::Find("\x33\xd2\x89\x45\x08\xb9\xac\x01\x00\x00", "xxxxxxxxxx", -0x27);
 
@@ -439,10 +466,11 @@ namespace {
 
         address = GW::Scanner::Find("\x74\x12\x6a\x16\x6a\x00", "xxxxxx", 0x6);
         GetGraphicsRendererValue_Func = (GetGraphicsRendererValue_pt)GW::Scanner::FunctionFromNearCall(address);
-        SetGraphicsRendererValue_Func = (SetGraphicsRendererValue_pt)GW::Scanner::FindAssertion("p:\\code\\engine\\gr\\grdev.cpp","metric != GR_METRIC_TEXTURE_MAX_CX",-0x9f);
+        address = GW::Scanner::Find("\x68\x75\x0a\x00\x00", "xxxxx");
+        SetGraphicsRendererValue_Func = (SetGraphicsRendererValue_pt)Scanner::ToFunctionStart(address);
 
 
-        address = GW::Scanner::FindAssertion("p:\\code\\gw\\ui\\dialog\\dlgoptgr.cpp", "multiSampleIndex != CTL_DROPLIST_INDEX_NULL", -0x46);
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Ui\\Dialog\\DlgOptGr.cpp", "multiSampleIndex != CTL_DROPLIST_INDEX_NULL", -0x46);
         SetGameRendererMode_Func = (SetGameRendererMode_pt)GW::Scanner::FunctionFromNearCall(address);
 
         address = GW::Scanner::Find("\x83\xc4\x1c\x81\xfe\x20\x03\x00\x00", "xxxxxxxxx");
@@ -483,7 +511,54 @@ namespace {
         GWCA_INFO("[SCAN] PreferencesInitialised_Addr = %p", PreferencesInitialised_Addr);
         GWCA_INFO("[SCAN] GetRootFrame_Func %p", GetRootFrame_Func);
 
+        GWCA_INFO("[SCAN] s_FrameArray = %p", s_FrameArray);
+        GWCA_INFO("[SCAN] SendFrameUIMessageById_Func = %p", SendFrameUIMessageById_Func);
+        GWCA_INFO("[SCAN] SendFrameUIMessage_Func = %p", SendFrameUIMessage_Func);
+        GWCA_INFO("[SCAN] CreateHashFromWchar_Func = %p", CreateHashFromWchar_Func);
+        GWCA_INFO("[SCAN] GetChildFrameId_Func = %p", GetChildFrameId_Func);
+        GWCA_INFO("[SCAN] GetRootFrame_Func = %p", GetRootFrame_Func);
+        GWCA_INFO("[SCAN] GetGraphicsRendererValue_Func = %p", GetGraphicsRendererValue_Func);
+        GWCA_INFO("[SCAN] SetGraphicsRendererValue_Func = %p", SetGraphicsRendererValue_Func);
+        GWCA_INFO("[SCAN] SetGameRendererMode_Func = %p", SetGameRendererMode_Func);
+        GWCA_INFO("[SCAN] GetGameRendererMetric_Func = %p", GetGameRendererMetric_Func);
 #ifdef _DEBUG
+        GWCA_ASSERT(s_FrameArray);
+        GWCA_ASSERT(WorldMapState_Addr);
+        GWCA_ASSERT(SendFrameUIMessageById_Func);
+        GWCA_ASSERT(SendFrameUIMessage_Func);
+        GWCA_ASSERT(CreateHashFromWchar_Func);
+        GWCA_ASSERT(GetChildFrameId_Func);
+        GWCA_ASSERT(GetRootFrame_Func);
+        GWCA_ASSERT(SendUIMessage_Func);
+        GWCA_ASSERT(LoadSettings_Func);
+        GWCA_ASSERT(ui_drawn_addr);
+        GWCA_ASSERT(shift_screen_addr);
+        GWCA_ASSERT(PreferencesInitialised_Addr);
+        GWCA_ASSERT(GetCommandLineFlag_Func);
+        GWCA_ASSERT(GetCommandLineString_Func);
+        GWCA_ASSERT(GetStringPreference_Func);
+        GWCA_ASSERT(GetFlagPreference_Func);
+        GWCA_ASSERT(GetEnumPreference_Func);
+        GWCA_ASSERT(GetNumberPreference_Func);
+        GWCA_ASSERT(GetCommandLineNumber_Func);
+        GWCA_ASSERT(CommandLineNumber_Buffer);
+        GWCA_ASSERT(SetInGameShadowQuality_Func);
+        GWCA_ASSERT(SetInGameUIScale_Func);
+        GWCA_ASSERT(SetStringPreference_Func);
+        GWCA_ASSERT(SetEnumPreference_Func);
+        GWCA_ASSERT(SetFlagPreference_Func);
+        GWCA_ASSERT(SetNumberPreference_Func);
+        GWCA_ASSERT(SetInGameStaticPreference_Func);
+        GWCA_ASSERT(TriggerTerrainRerender_Func);
+        GWCA_ASSERT(EnumPreferenceOptions_Addr);
+        GWCA_ASSERT(NumberPreferenceOptions_Addr);
+        GWCA_ASSERT(SetTooltip_Func);
+        GWCA_ASSERT(CurrentTooltipPtr);
+        GWCA_ASSERT(GameSettings_Addr);
+        GWCA_ASSERT(SetWindowVisible_Func);
+        GWCA_ASSERT(SetWindowPosition_Func);
+        GWCA_ASSERT(window_positions_array);
+
         GWCA_ASSERT(GetStringPreference_Func);
         GWCA_ASSERT(GetEnumPreference_Func);
         GWCA_ASSERT(GetNumberPreference_Func);
@@ -516,12 +591,29 @@ namespace {
         GWCA_ASSERT(SetInGameUIScale_Func);
         GWCA_ASSERT(PreferencesInitialised_Addr);
         GWCA_ASSERT(GetRootFrame_Func);
+
+        GWCA_ASSERT(GetGraphicsRendererValue_Func);
+        GWCA_ASSERT(SetGraphicsRendererValue_Func);
+        GWCA_ASSERT(SetGameRendererMode_Func);
+        GWCA_ASSERT(GetGameRendererMetric_Func);
 #endif
-        HookBase::CreateHook((void**)&SendUIMessage_Func, OnSendUIMessage, (void **)&RetSendUIMessage);
-        HookBase::CreateHook((void**)&CreateUIComponent_Func, OnCreateUIComponent, (void**)&CreateUIComponent_Ret);
-        HookBase::CreateHook((void**)&SendFrameUIMessage_Func, OnSendFrameUIMessage, (void**)&SendFrameUIMessage_Ret);
-        HookBase::CreateHook((void**)&SendFrameUIMessageById_Func, OnSendFrameUIMessageById, (void**)&SendFrameUIMessageById_Ret);
-        HookBase::CreateHook((void**)&DrawOnCompass_Func, OnDrawOnCompass, (void**)&DrawOnCompass_Ret);
+
+        //SendUIMessage_Func = 0;
+        //CreateUIComponent_Func = 0;
+        SendFrameUIMessage_Func = 0;
+        SendFrameUIMessageById_Func = 0;
+        //DrawOnCompass_Func = 0;
+
+        if(SendUIMessage_Func)
+            HookBase::CreateHook((void**)&SendUIMessage_Func, OnSendUIMessage, (void **)&RetSendUIMessage);
+        if(CreateUIComponent_Func)
+            HookBase::CreateHook((void**)&CreateUIComponent_Func, OnCreateUIComponent, (void**)&CreateUIComponent_Ret);
+        if(SendFrameUIMessage_Func)
+            HookBase::CreateHook((void**)&SendFrameUIMessage_Func, OnSendFrameUIMessage, (void**)&SendFrameUIMessage_Ret);
+        if(SendFrameUIMessageById_Func)
+            HookBase::CreateHook((void**)&SendFrameUIMessageById_Func, OnSendFrameUIMessageById, (void**)&SendFrameUIMessageById_Ret);
+        if(DrawOnCompass_Func)
+            HookBase::CreateHook((void**)&DrawOnCompass_Func, OnDrawOnCompass, (void**)&DrawOnCompass_Ret);
     }
 
     void EnableHooks() {
@@ -995,7 +1087,7 @@ namespace GW {
             }
 
             auto it = found->second.begin();
-            const auto& end = found->second.end();
+            auto end = found->second.end();
             // Pre callbacks
             while (it != end) {
                 if (it->altitude > 0)

@@ -27,10 +27,14 @@ namespace GW {
         // Actual pattern finder.
         uintptr_t Find(const char* pattern, const char* mask = 0, int offset = 0, Section section = Section::TEXT);
 
+        void GetSectionAddressRange(Section section, uintptr_t* start = nullptr, uintptr_t* end = nullptr);
+
         // Check if current address is a valid pointer (usually to a data variable in DATA)
         bool IsValidPtr(uintptr_t address, Section section = Section::DATA);
 
         // Returns actual address of a function call given via CALL <near call> instruction e.g. *call_instruction_address = 0xE8 ?? ?? ?? 0xFF
         uintptr_t FunctionFromNearCall(uintptr_t call_instruction_address, bool check_valid_ptr = true);
+
+        uintptr_t ToFunctionStart(uintptr_t call_instruction_address, uint32_t scan_range = 0xff);
     }
 }

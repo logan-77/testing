@@ -52,18 +52,14 @@ namespace {
     gwdx* gwdx_ptr = nullptr;
 
     typedef bool (__cdecl *GwEndScene_pt)(gwdx* ctx, void* unk);
-    GwEndScene_pt RetGwEndScene;
-    GwEndScene_pt GwEndScene_Func;
-
-    GwEndScene_pt RetScreenCapture;
-    GwEndScene_pt ScreenCapture_Func;
+    GwEndScene_pt RetGwEndScene = 0, GwEndScene_Func = 0;
+    GwEndScene_pt RetScreenCapture = 0, ScreenCapture_Func = 0;
 
     CRITICAL_SECTION mutex;
     bool in_render_loop = false;
 
     typedef bool (__cdecl *GwReset_pt)(gwdx* ctx);
-    GwReset_pt RetGwReset;
-    GwReset_pt GwReset_Func;
+    GwReset_pt RetGwReset = 0, GwReset_Func = 0;
 
     GW::Render::RenderCallback render_callback = nullptr;
     GW::Render::RenderCallback reset_callback = nullptr;
@@ -82,7 +78,6 @@ namespace {
         HookBase::LeaveHook();
         return retval;
     }
-
     bool __cdecl OnGwReset(gwdx* ctx)
     {
         HookBase::EnterHook();
@@ -110,10 +105,29 @@ namespace {
     {
         InitializeCriticalSection(&mutex);
 
-        GwGetTransform_func = (GwGetTransform_pt)Scanner::Find("\x8B\x75\x08\x83\xFE\x05\x7C\x14\x68\xDB\x02\x00\x00", "xxxxxxxxxxxxx", -0x4);
-        GwEndScene_Func = (GwEndScene_pt)Scanner::Find("\x89\x45\xFC\x57\x8B\x7D\x08\x8B\x8F", "xxxxxxxxx", -0xD);
-        ScreenCapture_Func = (GwEndScene_pt)Scanner::Find("\x83\xC4\x10\x8B\x86\x00\x00\x00\x00\x83", "xxxxx??xxx", -0x8F);
-        GwReset_Func = (GwReset_pt)Scanner::Find("\x3B\x4D\xB4\x6A\x00\x1B\xDB\xF7\xDB", "xxxxxxxxx", -0x8C);
+        uintptr_t address = Scanner::Find("\x75\x14\x68\xca\x03\x00\x00", "xxxxxxx");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64);
+        if (address)
+            GwReset_Func = (GwReset_pt)address;
+        
+        address = Scanner::Find("\x75\x28\x68\x8c\x08\x00\x00", "xxxxxxx");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64);
+        if (address)
+            GwEndScene_Func = (GwEndScene_pt)address;
+        
+        address = Scanner::Find("\x7c\x14\x68\xdb\x02\x00\x00", "xxxxxxx");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64);
+        if (address)
+            GwGetTransform_func = (GwGetTransform_pt)address;
+
+        address = Scanner::FindAssertion("Dx9Dev.cpp","No valid case for switch variable 'mode.Format'");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x400);
+        if (address)
+            ScreenCapture_Func = (GwEndScene_pt)address;
 
         GWCA_INFO("[SCAN] GwGetTransform = %p", GwGetTransform_func);
         GWCA_INFO("[SCAN] GwReset = %p", GwReset_Func);
@@ -126,10 +140,12 @@ namespace {
         GWCA_ASSERT(GwEndScene_Func);
         GWCA_ASSERT(ScreenCapture_Func);
 #endif
-
-        HookBase::CreateHook((void**)&GwEndScene_Func, OnGwEndScene, (void**)&RetGwEndScene);
-        HookBase::CreateHook((void**)&ScreenCapture_Func, OnScreenCapture, (void**)&RetScreenCapture);
-        HookBase::CreateHook((void**)&GwReset_Func, OnGwReset, (void**)&RetGwReset);
+        if(GwEndScene_Func)
+            HookBase::CreateHook((void**)&GwEndScene_Func, OnGwEndScene, (void**)&RetGwEndScene);
+        if(ScreenCapture_Func)
+            HookBase::CreateHook((void**)&ScreenCapture_Func, OnScreenCapture, (void**)&RetScreenCapture);
+        if(GwReset_Func)
+            HookBase::CreateHook((void**)&GwReset_Func, OnGwReset, (void**)&RetGwReset);
     }
 
     void EnableHooks()

@@ -12,6 +12,8 @@ namespace GW {
         bool IsValid();
         void SetPatch(uintptr_t addr, const char* patch, size_t size);
 
+        const void* GetAddress() { return m_addr; }
+
         // Use to redirect a CALL or JMP instruction to call a different function instead.
         bool SetRedirect(uintptr_t call_instruction_address, void* redirect_func);
 

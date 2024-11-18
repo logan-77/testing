@@ -8,6 +8,7 @@ namespace GW {
     GWCA_API AgentContext* GetAgentContext();
 
     struct AgentMovement;
+    struct Agent;
 
     struct AgentSummaryInfo {
         struct AgentSummaryInfoSub {

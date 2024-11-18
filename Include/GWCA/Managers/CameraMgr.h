@@ -13,19 +13,19 @@ namespace GW {
         // ==== Camera ====
         GWCA_API Camera *GetCamera();
 
-        GWCA_API void ForwardMovement(float amount, bool true_forward);
-        GWCA_API void VerticalMovement(float amount);
-        GWCA_API void RotateMovement(float angle);
-        GWCA_API void SideMovement(float amount);
+        GWCA_API bool ForwardMovement(float amount, bool true_forward);
+        GWCA_API bool VerticalMovement(float amount);
+        GWCA_API bool RotateMovement(float angle);
+        GWCA_API bool SideMovement(float amount);
 
         // Change max zoom dist
-        GWCA_API void SetMaxDist(float dist = 900.0f);
+        GWCA_API bool SetMaxDist(float dist = 900.0f);
 
-        GWCA_API void SetFieldOfView(float fov);
+        GWCA_API bool SetFieldOfView(float fov);
 
         // Manual computation of the position of the Camera. (As close as possible to the original)
         GWCA_API Vec3f ComputeCamPos(float dist = 0); // 2.f is the first person dist (const by gw)
-        GWCA_API void UpdateCameraPos();
+        GWCA_API bool UpdateCameraPos();
 
         GWCA_API float GetFieldOfView();
         GWCA_API float GetYaw();

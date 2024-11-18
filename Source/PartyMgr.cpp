@@ -33,24 +33,14 @@ namespace {
     typedef void(__cdecl* PartySearchSeek_pt)(uint32_t search_type, const wchar_t* advertisement, uint32_t unk);
     PartySearchSeek_pt PartySearchSeek_Func = 0;
 
-    typedef void(__cdecl* DoAction_pt)(uint32_t identifier);
-    DoAction_pt PartySearchRequestJoin_Func = 0;
-    DoAction_pt PartySearchRequestReply_Func = 0;
+    typedef void(__fastcall* PartySearchButtonCallback_pt)(void* context, uint32_t edx, uint32_t* wparam);
+    PartySearchButtonCallback_pt PartySearchButtonCallback_Func = 0;
+    PartySearchButtonCallback_pt PartyWindowButtonCallback_Func = 0;
 
-    DoAction_pt AddHero_Func = 0;
-    DoAction_pt AddHenchman_Func = 0;
-    DoAction_pt KickHero_Func = 0;
-    DoAction_pt KickHenchman_Func = 0;
+    typedef void(__cdecl* DoAction_pt)(uint32_t identifier);
 
     DoAction_pt SetReadyStatus_Func = 0;
     DoAction_pt SetDifficulty_Func = 0;
-    DoAction_pt PartyAcceptInvite_Func = 0;
-    DoAction_pt PartyRejectInvite_Func = 0;
-    DoAction_pt KickPlayer_Func = 0;
-
-    typedef void(__cdecl* Void_pt)();
-    Void_pt LeaveParty_Func = 0;
-    Void_pt PartySearchCancel_Func = 0;
 
     typedef void(__cdecl* FlagHeroAgent_pt)(uint32_t agent_id,GW::GamePos* pos);
     FlagHeroAgent_pt FlagHeroAgent_Func = 0;
@@ -93,79 +83,71 @@ namespace {
         if (address)
             TickButtonUICallback = (UI::UIInteractionCallback)Scanner::FunctionFromNearCall(*(uintptr_t*)address);
 
-        address = Scanner::Find("\x0f\x85\x26\x01\x00\x00\xff\x70\x20","xxxxxxxxx",0x9);
+        address = Scanner::Find("\x8b\x75\x08\x68\x28\x01\x00\x10", "xxxxxxx"); // NB: UI Message 0x10000128 lands within hard mode button ui callback
+        if (address)
+            address = Scanner::FindInRange("\xff\x70\x20\xe8", "xxxx", 3, address, address + 0xff);
         SetDifficulty_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
-        PartySearchSeek_Func = (PartySearchSeek_pt)Scanner::Find("\x8b\x78\x4c\x8d\x8f\x9c\x00\x00\x00", "xxxxxxxxx", -0xc);
+        address = Scanner::Find("\x8b\x78\x4c\x8d\x8f\x9c\x00\x00\x00", "xxxxxxxxx", -0xc);
+        if (Scanner::IsValidPtr(address, Scanner::TEXT))
+            PartySearchSeek_Func = (PartySearchSeek_pt)address;
 
         // Party Search Window Button Callback functions
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\party\\ptsearch.cpp", "m_activeList == LIST_HEROES", -0xd5);
-        PartySearchRequestJoin_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x60);
-        PartySearchRequestReply_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x150);
-        PartySearchCancel_Func = (Void_pt)Scanner::FunctionFromNearCall(address + 0x45f);
-        AddHero_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x100);
-        AddHenchman_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xb0);
-        KickHero_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x23b);
-        KickHenchman_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x22a);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtSearch.cpp", "m_activeList == LIST_HEROES");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec\x8b\x45\x08", "xxxxxx", 0, address, address - 0xff); // Start of ui callback function
+        if (Scanner::IsValidPtr(address, Scanner::TEXT))
+            PartySearchButtonCallback_Func = (PartySearchButtonCallback_pt)address;
 
         // Party Window Button Callback functions
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\party\\ptbuttons.cpp", "m_selection.agentId", -0x5e);
-        KickPlayer_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x132);
-        LeaveParty_Func = (Void_pt)Scanner::FunctionFromNearCall(address + 0x17c);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtButtons.cpp", "m_selection.agentId");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec\x51", "xxxx", 0, address, address - 0xff); // Start of ui callback function
+        if (Scanner::IsValidPtr(address, Scanner::TEXT)) 
+            PartyWindowButtonCallback_Func = (PartySearchButtonCallback_pt)address;
 
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\party\\ptplayer.cpp", "No valid case for switch variable '\"\"'", 0x27);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtPlayer.cpp", "No valid case for switch variable '\"\"'", 0x27);
         SetReadyStatus_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
         address = Scanner::Find("\x8d\x45\x10\x50\x56\x6a\x4d\x57","xxxxxxxx");
-        FlagHeroAgent_Func = (FlagHeroAgent_pt)Scanner::FunctionFromNearCall(address + 0x4e);
-        FlagAll_Func = (FlagAll_pt)Scanner::FunctionFromNearCall(address + 0x7c);
+        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+            address = Scanner::FindInRange("\x83\xc4\x04\x50\xe8", "xxxxx", 4, address, address + 0x64);
+            FlagHeroAgent_Func = (FlagHeroAgent_pt)Scanner::FunctionFromNearCall(address);
+            if(address) address = Scanner::FindInRange("\xc7\x45\xdc", "xxx", 7, address, address + 0x64);
+            FlagAll_Func = (FlagAll_pt)Scanner::FunctionFromNearCall(address);
+        }
 
         address = Scanner::Find("\x83\xc4\x10\x83\xff\x03\x75\x17", "xxxxxxxx",0x38);
-        LockPetTarget_Func = (LockPetTarget_pt)Scanner::FunctionFromNearCall(address);
-        SetHeroBehavior_Func = (SetHeroBehavior_pt)Scanner::FunctionFromNearCall(address + 0x7);
+        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+
+            LockPetTarget_Func = (LockPetTarget_pt)Scanner::FunctionFromNearCall(address);
+            SetHeroBehavior_Func = (SetHeroBehavior_pt)Scanner::FunctionFromNearCall(address + 0x7);
+        }
 
         address = Scanner::Find("\x6a\x00\x68\x00\x02\x02\x00\xff\x77\x04", "xxxxxxxxxx");
-        PartyRejectInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xb6);
-        PartyAcceptInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xcf);
+        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+            //PartyRejectInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xb6);
+            //PartyAcceptInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xcf);
+        }
 
         GWCA_INFO("[SCAN] TickButtonUICallback Function = %p", TickButtonUICallback);
         GWCA_INFO("[SCAN] SetDifficulty_Func = %p", SetDifficulty_Func);
         GWCA_INFO("[SCAN] PartySearchSeek_Func = %p", PartySearchSeek_Func);
-        GWCA_INFO("[SCAN] PartySearchRequestJoin_Func = %p", PartySearchRequestJoin_Func);
-        GWCA_INFO("[SCAN] PartySearchRequestReply_Func = %p", PartySearchRequestReply_Func);
-        GWCA_INFO("[SCAN] PartySearchCancel_Func = %p", PartySearchCancel_Func);
-        GWCA_INFO("[SCAN] AddHero_Func = %p", AddHero_Func);
-        GWCA_INFO("[SCAN] AddHenchman_Func = %p", AddHenchman_Func);
-        GWCA_INFO("[SCAN] KickHero_Func = %p", KickHero_Func);
-        GWCA_INFO("[SCAN] KickHenchman_Func = %p", KickHenchman_Func);
-        GWCA_INFO("[SCAN] KickPlayer_Func = %p", KickPlayer_Func);
-        GWCA_INFO("[SCAN] LeaveParty_Func = %p", LeaveParty_Func);
         GWCA_INFO("[SCAN] SetReadyStatus_Func = %p", SetReadyStatus_Func);
         GWCA_INFO("[SCAN] FlagHeroAgent_Func = %p", FlagHeroAgent_Func);
         GWCA_INFO("[SCAN] FlagAll_Func = %p", FlagAll_Func);
         GWCA_INFO("[SCAN] SetHeroBehavior_Func = %p", SetHeroBehavior_Func);
-        GWCA_INFO("[SCAN] PartyRejectInvite_Func = %p", PartyRejectInvite_Func);
-        GWCA_INFO("[SCAN] PartyAcceptInvite_Func = %p", PartyAcceptInvite_Func);
         GWCA_INFO("[SCAN] LockPetTarget_Func = %p", LockPetTarget_Func);
-        
+        GWCA_INFO("[SCAN] PartyWindowButtonCallback_Func = %p", PartyWindowButtonCallback_Func);
+        GWCA_INFO("[SCAN] PartySearchButtonCallback_Func = %p", PartySearchButtonCallback_Func);
 
 #ifdef _DEBUG
+        GWCA_ASSERT(PartyWindowButtonCallback_Func);
+        GWCA_ASSERT(PartySearchButtonCallback_Func);
         GWCA_ASSERT(TickButtonUICallback);
-        GWCA_ASSERT(SetDifficulty_Func);
-        GWCA_ASSERT(PartySearchRequestJoin_Func);
-        GWCA_ASSERT(PartySearchRequestReply_Func);
-        GWCA_ASSERT(PartySearchCancel_Func);
-        GWCA_ASSERT(AddHero_Func);
-        GWCA_ASSERT(AddHenchman_Func);
-        GWCA_ASSERT(KickHero_Func);
-        GWCA_ASSERT(KickHenchman_Func);
-        GWCA_ASSERT(KickPlayer_Func);
-        GWCA_ASSERT(LeaveParty_Func);
         GWCA_ASSERT(SetReadyStatus_Func);
         GWCA_ASSERT(FlagHeroAgent_Func);
         GWCA_ASSERT(FlagAll_Func);
-        GWCA_ASSERT(PartyRejectInvite_Func);
-        GWCA_ASSERT(PartyAcceptInvite_Func);
         GWCA_ASSERT(SetHeroBehavior_Func);
         GWCA_ASSERT(LockPetTarget_Func);
 #endif
@@ -331,8 +313,9 @@ namespace GW {
             return false;
         }
         bool RespondToPartyRequest(uint32_t party_id, bool accept) {
+            (party_id, accept);
             // @Robustness: Cycle invitations, make sure the party is found
-            if (accept) {
+            /*if (accept) {
                 if (!PartyAcceptInvite_Func)
                     return false;
                 PartyAcceptInvite_Func(party_id);
@@ -341,42 +324,87 @@ namespace GW {
                 if (!PartyRejectInvite_Func)
                     return false;
                 PartyRejectInvite_Func(party_id);
-            }
+            }*/
             return true;
         }
 
         bool AddHero(uint32_t heroid) {
-            // @Robustness: Make sure player has hero available
-            if (!AddHero_Func)
+            if (!PartySearchButtonCallback_Func)
                 return false;
-            AddHero_Func(heroid);
+
+            uint32_t wparam[4] = { 0 };
+            wparam[2] = 0x6;
+            wparam[1] = 0x1;
+
+            uint32_t ctx[13] = { 0 };
+            ctx[0xb] = 1;
+            ctx[9] = heroid;
+
+            PartySearchButtonCallback_Func(ctx, 2, wparam);
             return true;
         }
 
         bool KickHero(uint32_t heroid) {
-            // @Robustness: Make sure player's hero is in party
-            if (!KickHero_Func)
+            if (!PartySearchButtonCallback_Func)
                 return false;
-            KickHero_Func(heroid);
+
+            uint32_t wparam[4] = { 0 };
+            wparam[2] = 0x6;
+            wparam[1] = 0x6;
+
+            uint32_t ctx[13] = { 0 };
+            ctx[0xb] = 1;
+            ctx[ctx[0xb] + 8] = heroid;
+
+            PartySearchButtonCallback_Func(ctx, 0, wparam);
             return true;
         }
         bool KickAllHeroes() {
             return KickHero(0x26);
         }
         bool AddHenchman(uint32_t agent_id) {
-            // @Robustness: Make sure agent is valid henchman
-            return AddHenchman_Func ? AddHenchman_Func(agent_id), true : false;
+            if (!PartySearchButtonCallback_Func)
+                return false;
+
+            uint32_t wparam[4] = { 0 };
+            wparam[2] = 0x6;
+            wparam[1] = 0x2;
+
+            uint32_t ctx[13] = { 0 };
+            ctx[0xb] = 2;
+            ctx[10] = agent_id;
+
+            PartySearchButtonCallback_Func(ctx, 0, wparam);
+            return true;
         }
 
         bool KickHenchman(uint32_t agent_id) {
-            // @Robustness: Make sure player's hero is in party
-            return KickHenchman_Func ? KickHenchman_Func(agent_id), true : false;
+            if (!PartySearchButtonCallback_Func)
+                return false;
+
+            uint32_t wparam[4] = { 0 };
+            wparam[2] = 0x6;
+            wparam[1] = 0x6;
+
+            uint32_t ctx[13] = { 0 };
+            ctx[0xb] = 2;
+            ctx[ctx[0xb] + 8] = agent_id;
+
+            PartySearchButtonCallback_Func(ctx, 0, wparam);
+            return true;
         }
         bool KickPlayer(uint32_t playerid) {
-            // @Robustness: Make sure player is in party
-            if (!KickPlayer_Func || !GetIsLeader())
+            if (!PartyWindowButtonCallback_Func)
                 return false;
-            KickPlayer_Func(playerid);
+
+            uint32_t ctx[14] = { 0 };
+            ctx[0x34] = 1; // Pointer to a frame, make sure its not null
+            ctx[0xb] = playerid;
+            ctx[0xd] = 0;
+            ctx[10] = 1;
+            ctx[9] = 9;
+
+            PartyWindowButtonCallback_Func(ctx, 0, 0);
             return true;
         }
         bool InvitePlayer(const wchar_t* player_name) {
@@ -399,10 +427,15 @@ namespace GW {
         }
 
         bool LeaveParty() {
-            if (!LeaveParty_Func)
+            if (!PartyWindowButtonCallback_Func)
                 return false;
-            if(GetPartySize())
-                LeaveParty_Func();
+            if (!GetPartySize())
+                return true;
+
+            uint32_t ctx[14] = { 0 };
+            ctx[0xd] = 1;
+
+            PartyWindowButtonCallback_Func(ctx, 0, 0);
             return true;
         }
 
@@ -537,10 +570,28 @@ namespace GW {
             return true;
         }
         bool SearchPartyCancel() {
-            return PartySearchCancel_Func ? PartySearchCancel_Func(), true : false;
+            if (!PartySearchButtonCallback_Func)
+                return false;
+            uint32_t wparam[4] = { 0 };
+            wparam[2] = 0x8;
+            uint32_t ctx[13] = { 0 };
+            PartySearchButtonCallback_Func(ctx, 0, wparam);
+            return true;
         }
         bool SearchPartyReply(bool accept) {
-            return PartySearchRequestReply_Func ? PartySearchRequestReply_Func(accept ? 1U : 0U), true : false;
+            if (!PartySearchButtonCallback_Func)
+                return false;
+
+            uint32_t wparam[4] = { 0 };
+            wparam[2] = 0x6;
+            wparam[1] = 0x3;
+
+            uint32_t ctx[13] = { 0 };
+            ctx[0xb] = 0;
+            ctx[8] = accept;
+
+            PartySearchButtonCallback_Func(ctx, 0, wparam);
+            return true;
         }
     }
 

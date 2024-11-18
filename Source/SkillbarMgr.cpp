@@ -145,23 +145,19 @@ namespace {
             skill_array_addr = *(Skill**)address;
 
         address = GW::Scanner::Find("\xba\x33\x00\x00\x00\x89\x08\x8d\x40\x04", "x?xxxxxxxx", -4);
-        if (Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::RDATA)) {
+        if (Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::RDATA))
             attribute_array_addr = *(AttributeInfo**)address;
-        }
 
-        UseSkill_Func = (UseSkill_pt)GW::Scanner::Find( "\x85\xF6\x74\x5B\x83\xFE\x11\x74", "xxxxxxxx", -0x126);
-        if (UseSkill_Func) {
-            HookBase::CreateHook((void**)&UseSkill_Func, OnUseSkill, (void**)&RetUseSkill);
-        }
+        address = GW::Scanner::Find("\x85\xF6\x74\x5B\x83\xFE\x11\x74", "xxxxxxxx");
+        if (address)
+            UseSkill_Func = (UseSkill_pt)GW::Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x200);
 
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\templates\\templateshelpers.cpp", "targetPrimaryProf == templateData.profPrimary");
-        ChangeSecondary_Func = (ChangeSecondary_pt)Scanner::FunctionFromNearCall(address + 0x20);
-        LoadAttributes_Func = (LoadAttributes_pt)Scanner::FunctionFromNearCall(address + 0x34);
-        LoadSkills_Func = (LoadSkills_pt)Scanner::FunctionFromNearCall(address + 0x40);
 
-        if (LoadSkills_Func) {
-            HookBase::CreateHook((void**)&LoadSkills_Func, OnLoadSkillbar, (void**)&RetLoadSkills);
-            UI::RegisterUIMessageCallback(&OnLoadSkillbar_HookEntry, UI::UIMessage::kSendLoadSkillbar, OnLoadSkillbar_UIMessage, 0x1);
+        address = Scanner::FindAssertion("TemplatesHelpers.cpp", "targetPrimaryProf == templateData.profPrimary");
+        if (address) {
+            ChangeSecondary_Func = (ChangeSecondary_pt)Scanner::FunctionFromNearCall(address + 0x20);
+            LoadAttributes_Func = (LoadAttributes_pt)Scanner::FunctionFromNearCall(address + 0x34);
+            LoadSkills_Func = (LoadSkills_pt)Scanner::FunctionFromNearCall(address + 0x40);
         }
 
         GWCA_INFO("[SCAN] SkillArray = %p", skill_array_addr);
@@ -177,6 +173,16 @@ namespace {
         GWCA_ASSERT(LoadSkills_Func);
         GWCA_ASSERT(UseSkill_Func);
 #endif
+
+        if (UseSkill_Func) {
+            HookBase::CreateHook((void**)&UseSkill_Func, OnUseSkill, (void**)&RetUseSkill);
+        }
+
+        if (LoadSkills_Func) {
+            HookBase::CreateHook((void**)&LoadSkills_Func, OnLoadSkillbar, (void**)&RetLoadSkills);
+            UI::RegisterUIMessageCallback(&OnLoadSkillbar_HookEntry, UI::UIMessage::kSendLoadSkillbar, OnLoadSkillbar_UIMessage, 0x1);
+        }
+
 
     }
 
@@ -260,7 +266,7 @@ namespace GW {
             return skill_array_addr ? &arr[(uint32_t)skill_id] : nullptr;
         }
         AttributeInfo* GetAttributeConstantData(Constants::Attribute attribute_id) {
-            if (attribute_array_count <= static_cast<uint32_t>(attribute_id))
+            if (!attribute_array_addr || attribute_array_count <= static_cast<uint32_t>(attribute_id))
                 return nullptr;
             return &attribute_array_addr[static_cast<uint32_t>(attribute_id)];
         }

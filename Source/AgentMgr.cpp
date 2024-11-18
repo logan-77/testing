@@ -44,6 +44,8 @@ namespace {
     typedef void(*ChangeTarget_pt)(uint32_t agent_id, uint32_t auto_target_id);
     ChangeTarget_pt ChangeTarget_Func = 0, ChangeTarget_Ret = 0;
 
+    uint32_t current_target_id = 0;
+
     void OnChangeTarget_Func(uint32_t agent_id, uint32_t auto_target_id) {
         GW::Hook::EnterHook();
         UI::UIPacket::kSendChangeTarget packet = { agent_id, auto_target_id };
@@ -60,69 +62,23 @@ namespace {
         Gadget
     };
 
-    typedef void(*InteractPlayer_pt)(uint32_t agent_id);
-    InteractPlayer_pt InteractPlayer_Func = 0, InteractPlayer_Ret = 0;
+    typedef void(*MoveTo_pt)(float* pos);
+    MoveTo_pt MoveTo_Func = 0, MoveTo_Ret = 0;
 
-    void OnInteractPlayer_Func(uint32_t agent_id) {
-        GW::Hook::EnterHook();
-        UI::SendUIMessage(GW::UI::UIMessage::kSendInteractPlayer, (void*)agent_id);
-        GW::Hook::LeaveHook();
-    }
+    typedef void(*DoWorldActon_pt)(WorldActionId action_id, uint32_t agent_id, bool suppress_call_target);
+    DoWorldActon_pt DoWorldActon_Func = 0, DoWorldActon_Ret = 0;
 
-    typedef void(*InteractCallableAgent_pt)(uint32_t agent_id, bool call_target);
-    InteractCallableAgent_pt InteractNPC_Func = 0, InteractNPC_Ret = 0;
-    InteractCallableAgent_pt InteractItem_Func = 0, InteractItem_Ret = 0;
-    InteractCallableAgent_pt InteractGadget_Func = 0, InteractGadget_Ret = 0;
-    InteractCallableAgent_pt InteractEnemy_Func = 0, InteractEnemy_Ret = 0;
-
-    void OnInteractNPC_Func(uint32_t agent_id, bool call_target) {
+    void OnDoWorldActon_Func(WorldActionId action_id, uint32_t agent_id, bool suppress_call_target) {
         GW::Hook::EnterHook();
-        auto packet = UI::UIPacket::kInteractAgent{ agent_id, call_target };
-        UI::SendUIMessage(GW::UI::UIMessage::kSendInteractNPC, &packet);
-        GW::Hook::LeaveHook();
-    }
-    void OnInteractItem_Func(uint32_t agent_id, bool call_target) {
-        GW::Hook::EnterHook();
-        auto packet = UI::UIPacket::kInteractAgent{ agent_id, call_target };
-        UI::SendUIMessage(GW::UI::UIMessage::kSendInteractItem, &packet);
-        GW::Hook::LeaveHook();
-    }
-    void OnInteractGadget_Func(uint32_t agent_id, bool call_target) {
-        GW::Hook::EnterHook();
-        auto packet = UI::UIPacket::kInteractAgent{ agent_id, call_target };
-        UI::SendUIMessage(GW::UI::UIMessage::kSendInteractGadget, &packet);
-        GW::Hook::LeaveHook();
-    }
-    void OnInteractEnemy_Func(uint32_t agent_id, bool call_target) {
-        GW::Hook::EnterHook();
-        auto packet = UI::UIPacket::kInteractAgent{ agent_id, call_target };
-        UI::SendUIMessage(GW::UI::UIMessage::kSendInteractEnemy, &packet);
-        GW::Hook::LeaveHook();
-    }
-
-    typedef void(*CallTarget_pt)(uint32_t type, uint32_t agent_id);
-    CallTarget_pt CallTarget_Func = 0, CallTarget_Ret = 0;
-
-    void OnCallTarget_Func(uint32_t type, uint32_t agent_id) {
-        GW::Hook::EnterHook();
-        UI::UIPacket::kSendCallTarget packet = { (CallTargetType)type, agent_id };
-        UI::SendUIMessage(GW::UI::UIMessage::kSendCallTarget, &packet);
-        GW::Hook::LeaveHook();
-    }
-
-    typedef void(*MoveToWorldPoint_pt)(GamePos *pos);
-    MoveToWorldPoint_pt MoveToWorldPoint_Func = 0, MoveToWorldPoint_Ret = 0;
-
-    void OnMoveToWorldPoint_Func(GamePos* pos) {
-        GW::Hook::EnterHook();
-        UI::SendUIMessage(GW::UI::UIMessage::kSendMoveToWorldPoint, pos);
+        UI::UIPacket::kSendWorldAction packet = {
+            action_id, agent_id, suppress_call_target
+        };
+        UI::SendUIMessage(UI::UIMessage::kSendWorldAction, &packet);
         GW::Hook::LeaveHook();
     }
 
     uintptr_t AgentArrayPtr = 0;
     uintptr_t PlayerAgentIdPtr = 0;
-    uintptr_t TargetAgentIdPtr = 0;
-    uintptr_t MouseOverAgentIdPtr = 0;
     uintptr_t IsAutoRunningPtr = 0;
 
     AgentList *AgentListPtr = nullptr;
@@ -141,7 +97,7 @@ namespace {
         UI::UIMessage::kSendInteractEnemy,
         UI::UIMessage::kSendChangeTarget,
         UI::UIMessage::kChangeTarget,
-
+        UI::UIMessage::kSendWorldAction
     };
     void OnUIMessage(GW::HookStatus* status, UI::UIMessage message_id, void* wparam, void*) {
         if (status->blocked)
@@ -167,44 +123,14 @@ namespace {
                 SendGadgetDialog_Ret((uint32_t)wparam);
             }
         } break;
-        case UI::UIMessage::kSendMoveToWorldPoint: {
-            if (MoveToWorldPoint_Ret) {
-                MoveToWorldPoint_Ret((GamePos*)wparam);
-            }
+        case UI::UIMessage::kChangeTarget: {
+            const auto msg = static_cast<GW::UI::ChangeTargetUIMsg*>(wparam);
+            current_target_id = msg->manual_target_id;
         } break;
-        case UI::UIMessage::kSendCallTarget: {
-            if (CallTarget_Ret) {
-                if (const auto packet = static_cast<UI::UIPacket::kSendCallTarget*>(wparam))
-                    CallTarget_Ret((uint32_t)packet->call_type, packet->agent_id);
-            }
-        } break;
-        case UI::UIMessage::kSendInteractGadget: {
-            if (InteractGadget_Ret) {
-                if (const auto packet = static_cast<UI::UIPacket::kInteractAgent*>(wparam))
-                    InteractGadget_Ret(packet->agent_id, packet->call_target);
-            }
-        } break;
-        case UI::UIMessage::kSendInteractItem: {
-            if (InteractItem_Ret) {
-                if (const auto packet = static_cast<UI::UIPacket::kInteractAgent*>(wparam))
-                InteractItem_Ret(packet->agent_id, packet->call_target);
-            }
-        } break;
-        case UI::UIMessage::kSendInteractNPC: {
-            if (InteractNPC_Ret) {
-                if (const auto packet = static_cast<UI::UIPacket::kInteractAgent*>(wparam))
-                    InteractNPC_Ret(packet->agent_id, packet->call_target);
-            }
-        } break;
-        case UI::UIMessage::kSendInteractEnemy: {
-            if (InteractEnemy_Ret) {
-                if (const auto packet = static_cast<UI::UIPacket::kInteractAgent*>(wparam))
-                    InteractEnemy_Ret(packet->agent_id, packet->call_target);
-            }
-        } break;
-        case UI::UIMessage::kSendInteractPlayer: {
-            if (InteractPlayer_Ret) {
-                InteractPlayer_Ret((uint32_t)wparam);
+        case UI::UIMessage::kSendWorldAction: {
+            if (DoWorldActon_Ret) {
+                const auto msg = static_cast<UI::UIPacket::kSendWorldAction*>(wparam);
+                DoWorldActon_Ret(msg->action_id, msg->agent_id, msg->suppress_call_target);
             }
         } break;
         }
@@ -213,109 +139,64 @@ namespace {
     void Init() {
         uintptr_t address = 0;
 
-        address = Scanner::Find( "\x3B\xDF\x0F\x95", "xxxx", -0x0089);
-        if (address) {
+        address = Scanner::FindAssertion("AvSelect.cpp", "!(autoAgentId && !ManagerFindAgent(autoAgentId))");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0xff);
+        if (Scanner::IsValidPtr(address, Scanner::TEXT))
             ChangeTarget_Func = (ChangeTarget_pt)address;
 
-            TargetAgentIdPtr = *(uintptr_t*)(address + 0x94);
-            if (!Scanner::IsValidPtr(TargetAgentIdPtr))
-                TargetAgentIdPtr = 0;
-
-            MouseOverAgentIdPtr = TargetAgentIdPtr + 0x8;
-            if (!Scanner::IsValidPtr(MouseOverAgentIdPtr))
-                MouseOverAgentIdPtr = 0;
-        }
-
-        address = Scanner::Find("\xFF\x50\x10\x47\x83\xC6\x04\x3B\xFB\x75\xE1", "xxxxxxxxxxx", +0xD);
-        if (Scanner::IsValidPtr(*(uintptr_t*)address))
+        address = Scanner::Find("\x8b\x0c\x90\x85\xc9\x74\x19", "xxxxxxx", -0x4);
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
             AgentArrayPtr = *(uintptr_t*)address;
 
         address = Scanner::Find("\x5D\xE9\x00\x00\x00\x00\x55\x8B\xEC\x53","xx????xxxx", -0xE);
-        if (Scanner::IsValidPtr(*(uintptr_t*)address))
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
             PlayerAgentIdPtr = *(uintptr_t*)address;
 
+        // @Cleanup: try to do this via UI controls to avoid more signature scans
         address = Scanner::Find("\x89\x4b\x24\x8b\x4b\x28\x83\xe9\x00", "xxxxxxxxx");
-        if (address) {
+        if (Scanner::IsValidPtr(address,Scanner::TEXT)) {
             SendAgentDialog_Func = (SendDialog_pt)Scanner::FunctionFromNearCall(address + 0x15);
             SendGadgetDialog_Func = (SendDialog_pt)Scanner::FunctionFromNearCall(address + 0x25);
         }
 
+        address = Scanner::Find("\x83\xc4\x0c\x85\xff\x74\x0b\x56\x6a\x03", "xxxxxxxxxx", -0x5);
+        MoveTo_Func = (MoveTo_pt)Scanner::FunctionFromNearCall(address);
 
-        address = Scanner::Find("\xc7\x45\xf0\x98\x3a\x00\x00", "xxxxxxx", 0x41);
-        address = Scanner::FunctionFromNearCall(address); // Interact Agent function
-        if (address) {
-            InteractEnemy_Func = (InteractCallableAgent_pt)Scanner::FunctionFromNearCall(address + 0x73);
-            InteractPlayer_Func = (InteractPlayer_pt)Scanner::FunctionFromNearCall(address + 0xB2);
-            MoveToWorldPoint_Func = (MoveToWorldPoint_pt)Scanner::FunctionFromNearCall(address + 0xC7);
-            CallTarget_Func = (CallTarget_pt)Scanner::FunctionFromNearCall(address + 0xD6);
-            InteractNPC_Func = (InteractCallableAgent_pt)Scanner::FunctionFromNearCall(address + 0xE7);
-            InteractItem_Func = (InteractCallableAgent_pt)Scanner::FunctionFromNearCall(address + 0xF8);
-            // NB: What is UI message 0x100001a0 ?
-            InteractGadget_Func = (InteractCallableAgent_pt)Scanner::FunctionFromNearCall(address + 0x120);
-        }
-        HookBase::CreateHook((void**)&CallTarget_Func, OnCallTarget_Func, (void**)&CallTarget_Ret);
-        HookBase::CreateHook((void**)&InteractNPC_Func, OnInteractNPC_Func, (void**)&InteractNPC_Ret);
-        HookBase::CreateHook((void**)&InteractEnemy_Func, OnInteractEnemy_Func, (void**)&InteractEnemy_Ret);
-        HookBase::CreateHook((void**)&InteractGadget_Func, OnInteractGadget_Func, (void**)&InteractGadget_Ret);
-        HookBase::CreateHook((void**)&InteractItem_Func, OnInteractItem_Func, (void**)&InteractItem_Ret);
-        HookBase::CreateHook((void**)&InteractPlayer_Func, OnInteractPlayer_Func, (void**)&InteractPlayer_Ret);
-        HookBase::CreateHook((void**)&MoveToWorldPoint_Func, OnMoveToWorldPoint_Func, (void**)&MoveToWorldPoint_Ret);
+        address = Scanner::FindAssertion("GmCoreAction.cpp", "action < WORLD_ACTIONS"); // This hits twice, but we want the first function
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0xff);
+        if (Scanner::IsValidPtr(address, Scanner::TEXT))
+            DoWorldActon_Func = (DoWorldActon_pt)address;
+
+        HookBase::CreateHook((void**)&DoWorldActon_Func, OnDoWorldActon_Func, (void**)&DoWorldActon_Ret);
 
         HookBase::CreateHook((void**)&SendAgentDialog_Func, OnSendAgentDialog_Func, (void**)&SendAgentDialog_Ret);
         HookBase::CreateHook((void**)&SendGadgetDialog_Func, OnSendGadgetDialog_Func, (void**)&SendGadgetDialog_Ret);
         HookBase::CreateHook((void**)&ChangeTarget_Func, OnChangeTarget_Func, (void**)&ChangeTarget_Ret);
 
-        GWCA_INFO("[SCAN] TargetAgentIdPtr = %p", TargetAgentIdPtr);
-        GWCA_INFO("[SCAN] MouseOverAgentIdPtr = %p", MouseOverAgentIdPtr);
         GWCA_INFO("[SCAN] AgentArrayPtr = %p", AgentArrayPtr);
         GWCA_INFO("[SCAN] PlayerAgentIdPtr = %p", PlayerAgentIdPtr);
-
+        GWCA_INFO("[SCAN] MoveTo_Func = %p", MoveTo_Func);
         GWCA_INFO("[SCAN] ChangeTargetFunction = %p", ChangeTarget_Func);
         GWCA_INFO("[SCAN] SendAgentDialog_Func = %p", SendAgentDialog_Func);
         GWCA_INFO("[SCAN] SendGadgetDialog_Func = %p", SendGadgetDialog_Func);
-        GWCA_INFO("[SCAN] InteractEnemy Function = %p", InteractEnemy_Func);
-        GWCA_INFO("[SCAN] InteractPlayer Function = %p", InteractPlayer_Func);
-        GWCA_INFO("[SCAN] InteractNPC Function = %p", InteractNPC_Func);
-        GWCA_INFO("[SCAN] InteractItem Function = %p", InteractItem_Func);
-        GWCA_INFO("[SCAN] InteractIGadget Function = %p", InteractGadget_Func);
-        GWCA_INFO("[SCAN] MoveToWorldPoint_Func Function = %p", MoveToWorldPoint_Func);
-        GWCA_INFO("[SCAN] CallTarget Function = %p", CallTarget_Func);
 
 #ifdef _DEBUG
-        GWCA_ASSERT(TargetAgentIdPtr);
-        GWCA_ASSERT(MouseOverAgentIdPtr);
         GWCA_ASSERT(AgentArrayPtr);
         GWCA_ASSERT(PlayerAgentIdPtr);
-
+        GWCA_ASSERT(MoveTo_Func);
         GWCA_ASSERT(ChangeTarget_Func);
         GWCA_ASSERT(SendAgentDialog_Func);
         GWCA_ASSERT(SendGadgetDialog_Func);
-        GWCA_ASSERT(InteractEnemy_Func);
-        GWCA_ASSERT(InteractPlayer_Func);
-        GWCA_ASSERT(MoveToWorldPoint_Func);
-        GWCA_ASSERT(CallTarget_Func);
-        GWCA_ASSERT(InteractNPC_Func);
-        GWCA_ASSERT(InteractItem_Func);
-        GWCA_ASSERT(InteractGadget_Func);
 #endif
 
 
 
     }
     void EnableHooks() {
-        if (CallTarget_Func)
-            HookBase::EnableHooks(CallTarget_Func);
-        if (InteractNPC_Func)
-            HookBase::EnableHooks(InteractNPC_Func);
-        if (InteractEnemy_Func)
-            HookBase::EnableHooks(InteractEnemy_Func);
-        if (InteractGadget_Func)
-            HookBase::EnableHooks(InteractGadget_Func);
-        if (InteractPlayer_Func)
-            HookBase::EnableHooks(InteractPlayer_Func);
-        if (MoveToWorldPoint_Func)
-            HookBase::EnableHooks(MoveToWorldPoint_Func);
-
+        if (DoWorldActon_Func)
+            HookBase::EnableHooks(DoWorldActon_Func);
         if (SendAgentDialog_Func)
             HookBase::EnableHooks(SendAgentDialog_Func);
         if (SendGadgetDialog_Func)
@@ -326,21 +207,8 @@ namespace {
         }
     }
     void DisableHooks() {
-        if (CallTarget_Func)
-            HookBase::DisableHooks(CallTarget_Func);
-        if (InteractNPC_Func)
-            HookBase::DisableHooks(InteractNPC_Func);
-        if (InteractEnemy_Func)
-            HookBase::DisableHooks(InteractEnemy_Func);
-        if (InteractGadget_Func)
-            HookBase::DisableHooks(InteractGadget_Func);
-        if (InteractPlayer_Func)
-            HookBase::DisableHooks(InteractPlayer_Func);
-        if (InteractItem_Func)
-            HookBase::DisableHooks(InteractItem_Func);
-        if (MoveToWorldPoint_Func)
-            HookBase::DisableHooks(MoveToWorldPoint_Func);
-
+        if (DoWorldActon_Func)
+            HookBase::DisableHooks(DoWorldActon_Func);
         if (SendAgentDialog_Func)
             HookBase::DisableHooks(SendAgentDialog_Func);
         if (SendGadgetDialog_Func)
@@ -349,21 +217,8 @@ namespace {
         UI::RemoveUIMessageCallback(&UIMessage_Entry);
     }
     void Exit() {
-        if (CallTarget_Func)
-            HookBase::RemoveHook(CallTarget_Func);
-        if (InteractNPC_Func)
-            HookBase::RemoveHook(InteractNPC_Func);
-        if (InteractEnemy_Func)
-            HookBase::RemoveHook(InteractEnemy_Func);
-        if (InteractGadget_Func)
-            HookBase::RemoveHook(InteractGadget_Func);
-        if (InteractPlayer_Func)
-            HookBase::RemoveHook(InteractPlayer_Func);
-        if (InteractItem_Func)
-            HookBase::RemoveHook(InteractItem_Func);
-        if (MoveToWorldPoint_Func)
-            HookBase::RemoveHook(MoveToWorldPoint_Func);
-
+        if (DoWorldActon_Func)
+            HookBase::RemoveHook(DoWorldActon_Func);
         if (SendAgentDialog_Func)
             HookBase::RemoveHook(SendAgentDialog_Func);
         if (SendGadgetDialog_Func)
@@ -422,10 +277,7 @@ namespace GW {
             return *(uint32_t*)PlayerAgentIdPtr;
         }
         uint32_t GetTargetId() {
-            return *(uint32_t*)TargetAgentIdPtr;
-        }
-        uint32_t GetMouseoverId() {
-            return *(uint32_t*)MouseOverAgentIdPtr;
+            return current_target_id;
         }
 
         bool ChangeTarget(AgentID agent_id) {
@@ -446,7 +298,14 @@ namespace GW {
         }
 
         bool Move(GamePos pos) {
-            return UI::SendUIMessage(UI::UIMessage::kSendMoveToWorldPoint, &pos);
+            if (!MoveTo_Func)
+                return false;
+            float arg[4] = { .0f }; // idk 4th float
+            arg[0] = pos.x;
+            arg[1] = pos.y;
+            arg[2] = (float)pos.zplane;
+            MoveTo_Func(arg);
+            return true;
         }
         uint32_t GetAmountOfPlayersInInstance() {
             auto* w = GetWorldContext();
@@ -491,30 +350,28 @@ namespace GW {
         bool InteractAgent(const Agent* agent, bool call_target) {
             if (!agent)
                 return false;
-            UI::UIPacket::kInteractAgent packet = { agent->agent_id, call_target };
+            UI::UIPacket::kSendWorldAction packet = { WorldActionId::InteractEnemy, agent->agent_id, !call_target };
             if (agent->GetIsItemType()) {
-                return UI::SendUIMessage(UI::UIMessage::kSendInteractItem, &packet);
+                packet.action_id = WorldActionId::InteractItem;
+                return UI::SendUIMessage(UI::UIMessage::kSendWorldAction, &packet);
             }
             if (agent->GetIsGadgetType()) {
-                return UI::SendUIMessage(UI::UIMessage::kSendInteractGadget, &packet);
+                packet.action_id = WorldActionId::InteractGadget;
+                return UI::SendUIMessage(UI::UIMessage::kSendWorldAction, &packet);
             }
             const auto living = agent->GetAsAgentLiving();
             if (!living)
                 return false;
-            if (living->IsPlayer()) {
-                if (!UI::SendUIMessage(UI::UIMessage::kSendInteractPlayer, (void*)agent->agent_id))
-                    return false;
-                if (!call_target)
-                    return true;
-                auto call_packet = UI::UIPacket::kSendCallTarget{ CallTargetType::Following, agent->agent_id };
-                return UI::SendUIMessage(UI::UIMessage::kSendCallTarget, &call_packet);
-            }
             if (living->allegiance == GW::Constants::Allegiance::Enemy) {
-                return UI::SendUIMessage(UI::UIMessage::kSendInteractEnemy, &packet);
+                packet.action_id = WorldActionId::InteractEnemy;
+                return UI::SendUIMessage(UI::UIMessage::kSendWorldAction, &packet);
             }
-            else {
-                return UI::SendUIMessage(UI::UIMessage::kSendInteractNPC, &packet);
+            if (living->allegiance == GW::Constants::Allegiance::Npc_Minipet) {
+                packet.action_id = WorldActionId::InteractNPC;
+                return UI::SendUIMessage(UI::UIMessage::kSendWorldAction, &packet);
             }
+            packet.action_id = WorldActionId::InteractPlayerOrOther;
+            return UI::SendUIMessage(UI::UIMessage::kSendWorldAction, &packet);
         }
 
         wchar_t* GetPlayerNameByLoginNumber(uint32_t login_number) {

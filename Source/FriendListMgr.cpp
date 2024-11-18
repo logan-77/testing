@@ -113,14 +113,22 @@ namespace {
 
     void Init() {
 
-        uintptr_t address = Scanner::Find("\x74\x30\x8D\x47\xFF\x83\xF8\x01", "xxxxxxxx", -0xB);
-        if (Verify(address))
+        uintptr_t address = 0;
+
+        address = Scanner::FindAssertion("FriendApi.cpp", "friendName && *friendName");
+        if (address)
+            address = Scanner::FindInRange("\x57\xb9", "xx", 2, address, address + 0xff);
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
             FriendList_Addr = *(uintptr_t*)address;
 
         FriendEventHandler_Func = (FriendEventHandler_pt)Scanner::Find("\x83\xc0\xda\x83\xf8\x06", "xxxxxx", -0xc);
         SetOnlineStatus_Func = (SetOnlineStatus_pt)Scanner::Find("\x83\xFE\x03\x77\x40\xFF\x24\xB5\x00\x00\x00\x00\x33\xC0", "xxxxxxxx????xx", -0x26);
         AddFriend_Func = (AddFriend_pt)Scanner::Find("\x8B\x75\x10\x83\xFE\x03\x74\x65", "xxxxxxxx", -0x48);
-        RemoveFriend_Func = (RemoveFriend_pt)Scanner::Find("\x8B\x4D\x10\x89\x4E\x28\x8B\x4D\x08\xC7\x06", "xxxxxxxxxxx", -0x2D);
+
+        address = Scanner::Find("\x83\xf8\x03\x74\x1d\x83\xf8\x04\x74\x18", "xxxxxxxxxx");
+        if (address)
+            address = Scanner::FindInRange("\x50\xe8", "xx", 1, address, address + 0x32);
+        RemoveFriend_Func = (RemoveFriend_pt)Scanner::FunctionFromNearCall(address);
 
         // GW::UI::RegisterUIMessageCallback(&OnUpdateFriendStatusEvent_entry, GW::UI::UIMessage::kFriendUpdated, OnFriendUpdated);
 
@@ -140,8 +148,8 @@ namespace {
         GWCA_ASSERT(AddFriend_Func);
         GWCA_ASSERT(RemoveFriend_Func);
 #endif
-
-        HookBase::CreateHook((void**)&FriendEventHandler_Func, OnFriendEventHandler, (void**)&FriendEventHandler_Ret);
+        if(FriendEventHandler_Func)
+            HookBase::CreateHook((void**)&FriendEventHandler_Func, OnFriendEventHandler, (void**)&FriendEventHandler_Ret);
     }
 
     void EnableHooks() {

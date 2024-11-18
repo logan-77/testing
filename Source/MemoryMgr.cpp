@@ -20,7 +20,7 @@ namespace {
     typedef uint32_t(__cdecl* GetGWVersion_pt)(void);
     typedef void*(__stdcall* MemAllocHelper_pt)(size_t,uint8_t,const char*,int);
     typedef void*(__stdcall* MemReallocHelper_pt)(void*,size_t,uint8_t,const char*,int);
-    typedef void*(__fastcall* MemFree_pt)(void*);
+    typedef void*(__cdecl* MemFree_pt)(void*);
 
     GetGWVersion_pt GetGWVersion_Func = nullptr;
     MemAllocHelper_pt MemAllocHelper_Func = nullptr;
@@ -34,31 +34,45 @@ bool GW::MemoryMgr::Scan() {
     uintptr_t address;
 
     // Skill timer to use for exact effect times.
-    address = Scanner::Find("\x83\xCA\x01\x89\x15\x00\x00\x00\x00\xFF\xD6\x8B", "xxxxx????xxx", +5);
-    if (address)
-        SkillTimerPtr = *(DWORD**)address;
+
+    address = Scanner::FindAssertion("\\Code\\Gw\\Download\\DnArchive.cpp", "dlg", 0xf);
+    address = Scanner::FunctionFromNearCall(address);
+    if (address) {
+        address = address + 0x2;
+        if(Scanner::IsValidPtr(*(uintptr_t*)address))
+            SkillTimerPtr = *(DWORD**)address;
+    }
 
     address = Scanner::Find("\x83\xC4\x04\x83\x3D\x00\x00\x00\x00\x00\x75\x31", "xxxxx????xxx", -0xC);
-    if (address)
+    if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
         WinHandlePtr = *(uintptr_t *)address;
 
-    GetPersonalDirPtr = Scanner::Find("\x75\x2E\x6A\x01\x6A\x05\x56\x6A\x00", "xxxxxxxxx", -0x53);
+    address = Scanner::FindAssertion("\\Code\\Base\\Os\\Win32\\OsAnsi.cpp", "chars>=MAX_PATH", -0x24);
+    if (Scanner::IsValidPtr(address, Scanner::Section::TEXT))
+        GetPersonalDirPtr = address;// @Cleanup: this is a function!
 
-    address = Scanner::Find("\x6A\x00\x68\x00\x00\x01\x00\x89", "xxxxxxxx", 0x42);
+    address = Scanner::FindAssertion("\\Code\\Engine\\Event\\EvtRec.cpp", "filename", 0x4b);
     GetGWVersion_Func = (GetGWVersion_pt)Scanner::FunctionFromNearCall(address);
 
     address = Scanner::Find("\x57\xe8\x00\x00\x00\x00\x8b\xf0\x83\xc4\x04\x85\xf6\x75\x00\x8b", "xx????xxxxxxxx?x", -0x21);
-    MemAllocHelper_Func = (MemAllocHelper_pt)address;
+    if (Scanner::IsValidPtr(address, Scanner::Section::TEXT))
+        MemAllocHelper_Func = (MemAllocHelper_pt)address;
 
     address = Scanner::Find("\x56\xe8\x00\x00\x00\x00\x8b\xf8\x83\xc4\x04\x85\xff\x75\x00\x8b", "xx????xxxxxxxx?x", -0x41);
-    MemReallocHelper_Func = (MemReallocHelper_pt)address;
+    if (Scanner::IsValidPtr(address, Scanner::Section::TEXT))
+        MemReallocHelper_Func = (MemReallocHelper_pt)address;
 
     // MemFree is difficult to scan for because its implementation is small and its usages are very
     // repetitive, formulaic code.  Instead, scanning for when a function wrapping free is bound to a field
     // of Base::ExeAPI::s_api
-    address = Scanner::FindAssertion("p:\\code\\base\\os\\win32\\exe\\exeio.cpp", "!s_api.initialize", 0x14);
+    address = Scanner::FindAssertion("\\Code\\Base\\Os\\Win32\\Exe\\ExeIo.cpp", "!s_api.initialize", 0x14);
     address = Scanner::FunctionFromNearCall(address);
-    MemFree_Func = (MemFree_pt)*(uintptr_t*)(address + 0x39);
+    if (address) {
+        address = address + 0x39;
+        if(Scanner::IsValidPtr(*(uintptr_t*)address,Scanner::Section::TEXT))
+            MemFree_Func =  * (MemFree_pt*)address;
+    }
+
 
     GWCA_INFO("[SCAN] SkillTimerPtr = %08X", SkillTimerPtr);
     GWCA_INFO("[SCAN] WinHandlePtr = %08X", WinHandlePtr);

@@ -58,27 +58,24 @@ namespace {
     void Init() {
         DWORD address = 0;
 
-        address = Scanner::FindAssertion("p:\\code\\gw\\ui\\game\\quest\\questlog.cpp", "MISSION_MAP_OUTPOST == MissionCliGetMap()", -0x128); // UI Callback for quest log window
+        address = Scanner::Find("\x74\x14\x68\x33\x01\x00\x00", "xxxxxx", 0x19);
+        AbandonQuest_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
-        AbandonQuest_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0x100);
-        if (AbandonQuest_Func) {
-            HookBase::CreateHook((void**)&AbandonQuest_Func, OnAbandonQuest, (void**)&AbandonQuest_Ret);
-            UI::RegisterUIMessageCallback(&AbandonQuest_HookEntry, UI::UIMessage::kSendAbandonQuest, OnAbandonQuest_UIMessage, 0x1);
+        address = Scanner::Find("\x75\x14\x68\x5d\x10\x00\x00", "xxxxxxx");
+        if (address) {
+            address = Scanner::FindInRange("\xe8\x77\x65\x0e\x00\x83\xc4\x08", "x????xxx", 0, address, address + 0xff);
+            RequestQuestData_Func = (RequestQuestData_pt)Scanner::FunctionFromNearCall(address);
         }
-           
-
-        address = GW::Scanner::FunctionFromNearCall(address + 0x96);
+        if(address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0xff);
         SetActiveQuest_Func = (DoAction_pt)address;
-        if (SetActiveQuest_Func) {
-            HookBase::CreateHook((void**)&SetActiveQuest_Func, OnSetActiveQuest, (void**)&SetActiveQuest_Ret);
-            UI::RegisterUIMessageCallback(&SetActiveQuest_HookEntry, UI::UIMessage::kSendSetActiveQuest, OnSetActiveQuest_UIMessage, 0x1);
 
-            RequestQuestData_Func = (RequestQuestData_pt)GW::Scanner::FunctionFromNearCall(address + 0x6b);
-        }
 
-        address = Scanner::Find("\x68\x4a\x01\x00\x10\xff\x77\x04", "xxxxxxxx", 0x7a);
-
-        RequestQuestInfo_Func = (DoAction_pt)GW::Scanner::FunctionFromNearCall(address);
+        address = Scanner::Find("\x75\x14\x68\x4b\x10\x00\x00", "xxxxxxx");
+        if (address)
+            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0xff);
+        if (address)
+            RequestQuestInfo_Func = (DoAction_pt)address;
 
         GWCA_INFO("[SCAN] AbandonQuest_Func = %p", AbandonQuest_Func);
         GWCA_INFO("[SCAN] SetActiveQuest_Func = %p", SetActiveQuest_Func);
@@ -91,6 +88,16 @@ namespace {
         GWCA_ASSERT(RequestQuestData_Func);
         GWCA_ASSERT(RequestQuestInfo_Func);
 #endif
+
+        if (AbandonQuest_Func) {
+            HookBase::CreateHook((void**)&AbandonQuest_Func, OnAbandonQuest, (void**)&AbandonQuest_Ret);
+            UI::RegisterUIMessageCallback(&AbandonQuest_HookEntry, UI::UIMessage::kSendAbandonQuest, OnAbandonQuest_UIMessage, 0x1);
+        }
+        if (SetActiveQuest_Func) {
+            HookBase::CreateHook((void**)&SetActiveQuest_Func, OnSetActiveQuest, (void**)&SetActiveQuest_Ret);
+            UI::RegisterUIMessageCallback(&SetActiveQuest_HookEntry, UI::UIMessage::kSendSetActiveQuest, OnSetActiveQuest_UIMessage, 0x1);
+        }
+
     }
     void EnableHooks() {
         if (AbandonQuest_Func)

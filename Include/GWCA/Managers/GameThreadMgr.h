@@ -19,7 +19,8 @@ namespace GW {
         typedef HookCallback<> GameThreadCallback;
         GWCA_API void RegisterGameThreadCallback(
             HookEntry *entry,
-            const GameThreadCallback& callback);
+            const GameThreadCallback& callback,
+            int altitude = 0x4000);
 
         GWCA_API void RemoveGameThreadCallback(
             HookEntry *entry);

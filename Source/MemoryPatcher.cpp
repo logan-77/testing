@@ -63,7 +63,10 @@ namespace GW {
 
     void MemoryPatcher::SetPatch(uintptr_t addr, const char *patch, size_t size) {
         Reset();
+#ifdef _DEBUG
         GWCA_ASSERT(!IsValid());
+#endif
+        if (IsValid()) return;
 
         m_addr = reinterpret_cast<void *>(addr);
         m_size = size;
@@ -82,7 +85,10 @@ namespace GW {
     }
 
     void MemoryPatcher::PatchActual(bool patch) {
+#ifdef _DEBUG
         GWCA_ASSERT(IsValid());
+#endif
+        if (!IsValid()) return;
 
         if (!patching_enabled)
             return;
@@ -118,7 +124,10 @@ namespace GW {
     }
 
     bool MemoryPatcher::TogglePatch(bool flag) {
-        GWCA_ASSERT(IsValid());
+#ifdef _DEBUG
+//        GWCA_ASSERT(IsValid());
+#endif
+        if (!IsValid()) return false;
         m_active = flag;
         PatchActual(m_active);
         return flag;
