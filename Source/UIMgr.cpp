@@ -67,24 +67,23 @@ namespace {
         UI::CreateUIComponentPacket packet = {frame_id,component_flags, tab_index, event_callback, name_enc, component_label};
 
         HookStatus status;
-        auto it = OnCreateUIComponent_callbacks.begin();
-        const auto& end = OnCreateUIComponent_callbacks.end();
+        size_t i = 0;
         // Pre callbacks
-        while (it != end) {
-            if (it->altitude > 0)
+        for (; i < OnCreateUIComponent_callbacks.size(); i++) {
+            const auto& it = OnCreateUIComponent_callbacks[i];
+            if (it.altitude > 0)
                 break;
-            it->callback(&packet);
+            it.callback(&packet);
             ++status.altitude;
-            it++;
         }
 
         uint32_t out = CreateUIComponent_Ret(packet.frame_id,packet.component_flags,packet.tab_index,packet.event_callback,packet.name_enc,packet.component_label);
 
         // Post callbacks
-        while (it != end) {
-            it->callback(&packet);
+        for (; i < OnCreateUIComponent_callbacks.size(); i++) {
+            const auto& it = OnCreateUIComponent_callbacks[i];
+            it.callback(&packet);
             ++status.altitude;
-            it++;
         }
         GW::Hook::LeaveHook();
         return out;
