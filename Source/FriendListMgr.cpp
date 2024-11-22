@@ -115,15 +115,15 @@ namespace {
 
         uintptr_t address = 0;
 
-        address = Scanner::FindAssertion("FriendApi.cpp", "friendName && *friendName");
+        address = Scanner::FindAssertion("FriendApi.cpp", "friendName && *friendName",0,0);
         if (address)
             address = Scanner::FindInRange("\x57\xb9", "xx", 2, address, address + 0xff);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
             FriendList_Addr = *(uintptr_t*)address;
 
-        FriendEventHandler_Func = (FriendEventHandler_pt)Scanner::Find("\x83\xc0\xda\x83\xf8\x06", "xxxxxx", -0xc);
-        SetOnlineStatus_Func = (SetOnlineStatus_pt)Scanner::Find("\x83\xFE\x03\x77\x40\xFF\x24\xB5\x00\x00\x00\x00\x33\xC0", "xxxxxxxx????xx", -0x26);
-        AddFriend_Func = (AddFriend_pt)Scanner::Find("\x8B\x75\x10\x83\xFE\x03\x74\x65", "xxxxxxxx", -0x48);
+        FriendEventHandler_Func = (FriendEventHandler_pt)Scanner::ToFunctionStart(Scanner::Find("\x83\xc0\xda\x83\xf8\x06", "xxxxxx"));
+        SetOnlineStatus_Func = (SetOnlineStatus_pt)Scanner::ToFunctionStart(Scanner::Find("\x83\xFE\x03\x77\x40\xFF\x24\xB5\x00\x00\x00\x00\x33\xC0", "xxxxxxxx????xx"));
+        AddFriend_Func = (AddFriend_pt)Scanner::ToFunctionStart(Scanner::Find("\x8B\x75\x10\x83\xFE\x03\x74\x65", "xxxxxxxx"));
 
         address = Scanner::Find("\x83\xf8\x03\x74\x1d\x83\xf8\x04\x74\x18", "xxxxxxxxxx");
         if (address)

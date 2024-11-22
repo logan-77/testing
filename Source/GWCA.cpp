@@ -94,12 +94,12 @@ namespace GW
 
         HookBase::Initialize();
 
-        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmContext.cpp", "!s_context", -0x9);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmContext.cpp", "!s_context",0, -0x9);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::DATA))
             GameplayContext_addr = *(uintptr_t*)address;
 
 
-        address = Scanner::FindAssertion("UiPregame.cpp", "!s_scene", 0x34);
+        address = Scanner::FindAssertion("UiPregame.cpp", "!s_scene", 0,0x34);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address,Scanner::DATA))
             PreGameContext_addr = *(uintptr_t*)address;
 

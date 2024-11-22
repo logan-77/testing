@@ -148,12 +148,10 @@ namespace {
         if (Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::RDATA))
             attribute_array_addr = *(AttributeInfo**)address;
 
-        address = GW::Scanner::Find("\x85\xF6\x74\x5B\x83\xFE\x11\x74", "xxxxxxxx");
-        if (address)
-            UseSkill_Func = (UseSkill_pt)GW::Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x200);
+        UseSkill_Func = (UseSkill_pt)Scanner::ToFunctionStart(GW::Scanner::Find("\x85\xF6\x74\x5B\x83\xFE\x11\x74", "xxxxxxxx"), 0x200);
 
 
-        address = Scanner::FindAssertion("TemplatesHelpers.cpp", "targetPrimaryProf == templateData.profPrimary");
+        address = Scanner::FindAssertion("TemplatesHelpers.cpp", "targetPrimaryProf == templateData.profPrimary",0,0);
         if (address) {
             ChangeSecondary_Func = (ChangeSecondary_pt)Scanner::FunctionFromNearCall(address + 0x20);
             LoadAttributes_Func = (LoadAttributes_pt)Scanner::FunctionFromNearCall(address + 0x34);

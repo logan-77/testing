@@ -35,7 +35,7 @@ bool GW::MemoryMgr::Scan() {
 
     // Skill timer to use for exact effect times.
 
-    address = Scanner::FindAssertion("\\Code\\Gw\\Download\\DnArchive.cpp", "dlg", 0xf);
+    address = Scanner::FindAssertion("\\Code\\Gw\\Download\\DnArchive.cpp", "dlg", 0, 0xf);
     address = Scanner::FunctionFromNearCall(address);
     if (address) {
         address = address + 0x2;
@@ -47,25 +47,21 @@ bool GW::MemoryMgr::Scan() {
     if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
         WinHandlePtr = *(uintptr_t *)address;
 
-    address = Scanner::FindAssertion("\\Code\\Base\\Os\\Win32\\OsAnsi.cpp", "chars>=MAX_PATH", -0x24);
+    address = Scanner::FindAssertion("\\Code\\Base\\Os\\Win32\\OsAnsi.cpp", "chars>=MAX_PATH", 0, -0x24);
     if (Scanner::IsValidPtr(address, Scanner::Section::TEXT))
         GetPersonalDirPtr = address;// @Cleanup: this is a function!
 
-    address = Scanner::FindAssertion("\\Code\\Engine\\Event\\EvtRec.cpp", "filename", 0x4b);
+    address = Scanner::FindAssertion("\\Code\\Engine\\Event\\EvtRec.cpp", "filename", 0,0x4b);
     GetGWVersion_Func = (GetGWVersion_pt)Scanner::FunctionFromNearCall(address);
 
-    address = Scanner::Find("\x57\xe8\x00\x00\x00\x00\x8b\xf0\x83\xc4\x04\x85\xf6\x75\x00\x8b", "xx????xxxxxxxx?x", -0x21);
-    if (Scanner::IsValidPtr(address, Scanner::Section::TEXT))
-        MemAllocHelper_Func = (MemAllocHelper_pt)address;
+    MemAllocHelper_Func = (MemAllocHelper_pt)Scanner::ToFunctionStart(Scanner::Find("\x57\xe8\x00\x00\x00\x00\x8b\xf0\x83\xc4\x04\x85\xf6\x75\x00\x8b", "xx????xxxxxxxx?x"));
 
-    address = Scanner::Find("\x56\xe8\x00\x00\x00\x00\x8b\xf8\x83\xc4\x04\x85\xff\x75\x00\x8b", "xx????xxxxxxxx?x", -0x41);
-    if (Scanner::IsValidPtr(address, Scanner::Section::TEXT))
-        MemReallocHelper_Func = (MemReallocHelper_pt)address;
+    MemReallocHelper_Func = (MemReallocHelper_pt) Scanner::ToFunctionStart(Scanner::Find("\x56\xe8\x00\x00\x00\x00\x8b\xf8\x83\xc4\x04\x85\xff\x75\x00\x8b", "xx????xxxxxxxx?x"));
 
     // MemFree is difficult to scan for because its implementation is small and its usages are very
     // repetitive, formulaic code.  Instead, scanning for when a function wrapping free is bound to a field
     // of Base::ExeAPI::s_api
-    address = Scanner::FindAssertion("\\Code\\Base\\Os\\Win32\\Exe\\ExeIo.cpp", "!s_api.initialize", 0x14);
+    address = Scanner::FindAssertion("\\Code\\Base\\Os\\Win32\\Exe\\ExeIo.cpp", "!s_api.initialize", 0, 0x14);
     address = Scanner::FunctionFromNearCall(address);
     if (address) {
         address = address + 0x39;

@@ -93,20 +93,12 @@ namespace {
             PartySearchSeek_Func = (PartySearchSeek_pt)address;
 
         // Party Search Window Button Callback functions
-        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtSearch.cpp", "m_activeList == LIST_HEROES");
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec\x8b\x45\x08", "xxxxxx", 0, address, address - 0xff); // Start of ui callback function
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            PartySearchButtonCallback_Func = (PartySearchButtonCallback_pt)address;
+        PartySearchButtonCallback_Func = (PartySearchButtonCallback_pt)Scanner::ToFunctionStart(Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtSearch.cpp", "m_activeList == LIST_HEROES",0,0));
 
         // Party Window Button Callback functions
-        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtButtons.cpp", "m_selection.agentId");
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec\x51", "xxxx", 0, address, address - 0xff); // Start of ui callback function
-        if (Scanner::IsValidPtr(address, Scanner::TEXT)) 
-            PartyWindowButtonCallback_Func = (PartySearchButtonCallback_pt)address;
+        PartyWindowButtonCallback_Func = (PartySearchButtonCallback_pt)Scanner::ToFunctionStart(Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtButtons.cpp", "m_selection.agentId",0,0));
 
-        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtPlayer.cpp", "No valid case for switch variable '\"\"'", 0x27);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\Party\\PtPlayer.cpp", "No valid case for switch variable '\"\"'", 0, 0x27);
         SetReadyStatus_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
         address = Scanner::Find("\x8d\x45\x10\x50\x56\x6a\x4d\x57","xxxxxxxx");

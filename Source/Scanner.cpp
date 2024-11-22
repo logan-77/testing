@@ -35,7 +35,7 @@ namespace {
     }
 
 }
-uintptr_t GW::Scanner::FindAssertion(const char* assertion_file, const char* assertion_msg, int offset) {
+uintptr_t GW::Scanner::FindAssertion(const char* assertion_file, const char* assertion_msg, uint32_t line_number, int offset) {
     GWCA_ASSERT(assertion_file && *assertion_file);
     GWCA_ASSERT(assertion_msg && *assertion_msg);
     #pragma warning( push )
@@ -44,9 +44,33 @@ uintptr_t GW::Scanner::FindAssertion(const char* assertion_file, const char* ass
     #pragma warning( disable : 4244 )
     #pragma warning( disable : 4365 )
     int i;
-    char assertion_bytes[] = "\xBA????\xB9????";
-    char assertion_mask[] = "xxxxxxxxxx";
+    char assertion_bytes[] = "\x68????\xBA????\xB9????";
+    char assertion_mask[] = "xxxxxxxxxxxxxxx";
 
+    char* assertion_bytes_ptr = &assertion_bytes[5];
+    char* assertion_mask_ptr = &assertion_mask[5];
+
+    
+    if (line_number) {
+        if ((line_number & 0xff) == line_number) {
+            // PUSH uint8
+            assertion_bytes_ptr = &assertion_bytes[3];
+            assertion_mask_ptr = &assertion_mask[3];
+            assertion_bytes[3] = 0x6a;
+            assertion_bytes[4] = line_number;
+        }
+        else {
+            // PUSH uint32
+            assertion_bytes_ptr = &assertion_bytes[0];
+            assertion_mask_ptr = &assertion_mask[0];
+            assertion_bytes[0] = 0x68;
+            assertion_bytes[1] = line_number;
+            assertion_bytes[2] = line_number >> 8;
+            assertion_bytes[3] = line_number >> 16;
+            assertion_bytes[4] = line_number >> 24;
+        }
+    }
+    offset += &assertion_mask[5] - assertion_mask_ptr; // Legacy code meant that offsets are calculated from the \xBA instruction
     
     char assertion_message_mask[128];
     for (i = 0; assertion_msg[i]; i++) {
@@ -76,10 +100,10 @@ uintptr_t GW::Scanner::FindAssertion(const char* assertion_file, const char* ass
 
         assertion_message_offset = found + 1;
 
-        assertion_bytes[6] = found;
-        assertion_bytes[7] = found >> 8;
-        assertion_bytes[8] = found >> 16;
-        assertion_bytes[9] = found >> 24;
+        assertion_bytes[11] = found;
+        assertion_bytes[12] = found >> 8;
+        assertion_bytes[13] = found >> 16;
+        assertion_bytes[14] = found >> 24;
 
         uint32_t assertion_file_offset = start;
         for (;;) {
@@ -104,12 +128,12 @@ uintptr_t GW::Scanner::FindAssertion(const char* assertion_file, const char* ass
                     break;
             }
 
-            assertion_bytes[1] = found;
-            assertion_bytes[2] = found >> 8;
-            assertion_bytes[3] = found >> 16;
-            assertion_bytes[4] = found >> 24;
+            assertion_bytes[6] = found;
+            assertion_bytes[7] = found >> 8;
+            assertion_bytes[8] = found >> 16;
+            assertion_bytes[9] = found >> 24;
 
-            found = Find(assertion_bytes, assertion_mask, offset);
+            found = Find(assertion_bytes_ptr, assertion_mask_ptr, offset);
             if (found)
                 return found;
         }

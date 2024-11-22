@@ -219,9 +219,7 @@ namespace {
         if (Scanner::IsValidPtr(*(uintptr_t*)address))
             storage_open_addr = *(uint32_t**)address;
 
-        address = Scanner::Find("\x8B\x48\x08\x83\xEA\x00\x0F\x84", "xxxxxxxx", -0x1C);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            ItemClick_Func = (ItemClick_pt)address;
+        ItemClick_Func = (ItemClick_pt)Scanner::ToFunctionStart(Scanner::Find("\x8B\x48\x08\x83\xEA\x00\x0F\x84", "xxxxxxxx"));
 
         address = Scanner::Find("\x0f\xb6\x40\x04\x83\xc0\xf8", "xxxxxxx", 0x1f);
         UseItem_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
@@ -234,7 +232,7 @@ namespace {
 
 
         // @Cleanup: All of these functions could be done via UI messages
-        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmView.cpp", "param.notifyData");
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmView.cpp", "param.notifyData",0,0);
         if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
             const auto assertion_address = address;
             address = Scanner::FindInRange("\xe8", "x", 0, assertion_address + 0xf, assertion_address + 0x64);
@@ -247,13 +245,9 @@ namespace {
             SalvageMaterials_Func = (Void_pt)Scanner::FunctionFromNearCall(address);
         }
 
-        address = Scanner::Find("\x75\x14\x68\x25\x06\x00\x00", "xxxxxxx",-0x14);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            SalvageStart_Func = (SalvageStart_pt)address;
+        SalvageStart_Func = (SalvageStart_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x14\x68\x25\x06\x00\x00", "xxxxxxx"));
 
-        address = Scanner::Find("\x75\x1a\x68\x88\x05\x00\x00", "xxxxxxx",-0x25);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            IdentifyItem_Func = (IdentifyItem_pt)address;
+        IdentifyItem_Func = (IdentifyItem_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x1a\x68\x88\x05\x00\x00", "xxxxxxx"));
 
         address = Scanner::Find("\x83\xc4\x40\x6a\x00\x6a\x19", "xxxxxxx", -0x4e);
         DropItem_Func = (DropItem_pt)Scanner::FunctionFromNearCall(address);
@@ -270,22 +264,22 @@ namespace {
         address = Scanner::Find("\x83\xc9\x01\x89\x4b\x24", "xxxxxx", 0x28);
         OpenLockedChest_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
-        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmWeaponBar.cpp", "slotIndex < ITEM_PLAYER_EQUIP_SETS", 0x128);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmWeaponBar.cpp", "slotIndex < ITEM_PLAYER_EQUIP_SETS", 0,0x128);
         PingWeaponSet_Func = (PingWeaponSet_pt)Scanner::FunctionFromNearCall(address);
 
-        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstItemPvp.cpp", "unlockIndex < ITEM_PVP_UNLOCK_COUNT");
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstItemPvp.cpp", "unlockIndex < ITEM_PVP_UNLOCK_COUNT",0,0);
         if (address) {
             unlocked_pvp_item_upgrade_array.m_buffer = *(PvPItemUpgradeInfo**)(address + 0x15);
             unlocked_pvp_item_upgrade_array.m_size = *(size_t*)(address - 0xb);
         }
 
-        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstItemPvp.cpp", "index < ITEM_PVP_ITEM_COUNT");
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstItemPvp.cpp", "index < ITEM_PVP_ITEM_COUNT",0,0);
         if (address) {
             pvp_item_array.m_buffer = *(PvPItemInfo**)(address + 0x15);
             pvp_item_array.m_size = *(size_t*)(address - 0xb);
         }
 
-        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Composite\\Data\\CpsData.cpp", "id < s_items.Count()",-0xb);
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Composite\\Data\\CpsData.cpp", "id < s_items.Count()",0,-0xb);
         if (address) {
             address = (*(uintptr_t*)address) - 8;
             composite_model_info_array = (Array<CompositeModelInfo>*)address;
@@ -296,7 +290,7 @@ namespace {
             GetPvPItemUpgradeInfoName_Func = (GetPvPItemUpgradeInfoName_pt)address;
         }
 
-        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstItem.cpp", "formula < ITEM_FORMULAS");
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstItem.cpp", "formula < ITEM_FORMULAS",0,0);
         if (address) {
             item_formulas = *(ItemFormula**)(address + 0x15);
             item_formula_count = *(uint32_t*)(address + -0xb);

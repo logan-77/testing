@@ -139,11 +139,7 @@ namespace {
     void Init() {
         uintptr_t address = 0;
 
-        address = Scanner::FindAssertion("AvSelect.cpp", "!(autoAgentId && !ManagerFindAgent(autoAgentId))");
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0xff);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            ChangeTarget_Func = (ChangeTarget_pt)address;
+        ChangeTarget_Func = (ChangeTarget_pt)GW::Scanner::ToFunctionStart(Scanner::FindAssertion("AvSelect.cpp", "!(autoAgentId && !ManagerFindAgent(autoAgentId))",0,0));
 
         address = Scanner::Find("\x8b\x0c\x90\x85\xc9\x74\x19", "xxxxxxx", -0x4);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address))
@@ -163,11 +159,7 @@ namespace {
         address = Scanner::Find("\x83\xc4\x0c\x85\xff\x74\x0b\x56\x6a\x03", "xxxxxxxxxx", -0x5);
         MoveTo_Func = (MoveTo_pt)Scanner::FunctionFromNearCall(address);
 
-        address = Scanner::FindAssertion("GmCoreAction.cpp", "action < WORLD_ACTIONS"); // This hits twice, but we want the first function
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0xff);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            DoWorldActon_Func = (DoWorldActon_pt)address;
+        DoWorldActon_Func = (DoWorldActon_pt)GW::Scanner::ToFunctionStart(Scanner::FindAssertion("GmCoreAction.cpp", "action < WORLD_ACTIONS",0,0)); // This hits twice, but we want the first function
 
         HookBase::CreateHook((void**)&DoWorldActon_Func, OnDoWorldActon_Func, (void**)&DoWorldActon_Ret);
 

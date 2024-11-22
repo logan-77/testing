@@ -36,9 +36,7 @@ namespace {
     void Init() {
         uintptr_t address = 0;
 
-        address = GW::Scanner::FindAssertion("AttribTitles.cpp", "!*hdr.param");
-        if (address)
-            address = GW::Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64); // UI::UIInteractionCallback for title row
+        address = Scanner::ToFunctionStart(Scanner::FindAssertion("AttribTitles.cpp", "!*hdr.param",0,0)); // UI::UIInteractionCallback for title row
         if (address)
             address = Scanner::FindInRange("\xff\x76\x08\xe8", "xxxx", 3, address, address + 0x3ff);
         SetActiveTitle_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
@@ -52,7 +50,7 @@ namespace {
         address = Scanner::Find("\x68\x88\x13\x00\x00\xff\x76\x0c\x6a\x00", "xxxxxxxxxx", 0xa); // UI::UIInteractionCallback for entering player name for faction donation
         DepositFaction_Func = (DepositFaction_pt)Scanner::FunctionFromNearCall(address);
 
-        address = Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstTitle.cpp", "index < arrsize(s_titleClientData)", 0x12);
+        address = Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstTitle.cpp", "index < arrsize(s_titleClientData)", 0, 0x12);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::RDATA))
             title_data = *(TitleClientData**)address;
 

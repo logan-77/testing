@@ -24,7 +24,7 @@ namespace {
 
     void Init() {
 
-        uintptr_t address = Scanner::FindAssertion("GmCam.cpp", "fov", 0xf);
+        uintptr_t address = Scanner::FindAssertion("GmCam.cpp", "fov", 0, 0xf);
         if (address)
             address = Scanner::FindInRange("\xd9\xee\xb9", "xxx", 3, address, address + 0xf);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address))

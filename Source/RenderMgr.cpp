@@ -105,29 +105,13 @@ namespace {
     {
         InitializeCriticalSection(&mutex);
 
-        uintptr_t address = Scanner::Find("\x75\x14\x68\xca\x03\x00\x00", "xxxxxxx");
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64);
-        if (address)
-            GwReset_Func = (GwReset_pt)address;
+        GwReset_Func = (GwReset_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x14\x68\xca\x03\x00\x00", "xxxxxxx"));
         
-        address = Scanner::Find("\x75\x28\x68\x8c\x08\x00\x00", "xxxxxxx");
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64);
-        if (address)
-            GwEndScene_Func = (GwEndScene_pt)address;
+        GwEndScene_Func = (GwEndScene_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x28\x68\x8c\x08\x00\x00", "xxxxxxx"));
         
-        address = Scanner::Find("\x7c\x14\x68\xdb\x02\x00\x00", "xxxxxxx");
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x64);
-        if (address)
-            GwGetTransform_func = (GwGetTransform_pt)address;
+        GwGetTransform_func = (GwGetTransform_pt) Scanner::ToFunctionStart(Scanner::Find("\x7c\x14\x68\xdb\x02\x00\x00", "xxxxxxx"));
 
-        address = Scanner::FindAssertion("Dx9Dev.cpp","No valid case for switch variable 'mode.Format'");
-        if (address)
-            address = Scanner::FindInRange("\x55\x8b\xec", "xxx", 0, address, address - 0x400);
-        if (address)
-            ScreenCapture_Func = (GwEndScene_pt)address;
+        ScreenCapture_Func = (GwEndScene_pt)Scanner::ToFunctionStart(Scanner::FindAssertion("Dx9Dev.cpp","No valid case for switch variable 'mode.Format'",0,0), 0xfff);
 
         GWCA_INFO("[SCAN] GwGetTransform = %p", GwGetTransform_func);
         GWCA_INFO("[SCAN] GwReset = %p", GwReset_Func);

@@ -309,35 +309,23 @@ namespace {
 
     void Init() {
         uintptr_t address = 0;
-        address = Scanner::Find("\xC7\x00\x60\xC0\xFF\xFF\x5D\xC3", "xxxxxxxx", -0x1C);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            GetSenderColor_Func = (GetChannelColor_pt)address;
+        GetSenderColor_Func = (GetChannelColor_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\xC7\x00\x60\xC0\xFF\xFF\x5D\xC3", "xxxxxxxx"));
 
-        address = Scanner::Find("\xC7\x00\xB0\xB0\xB0\xFF\x5D\xC3", "xxxxxxxx", -0x27);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            GetMessageColor_Func = (GetChannelColor_pt)address;
+        GetMessageColor_Func = (GetChannelColor_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\xC7\x00\xB0\xB0\xB0\xFF\x5D\xC3", "xxxxxxxx"));
 
-        address = Scanner::Find("\x8D\x85\xE0\xFE\xFF\xFF\x50\x68\x1C\x01", "xxxxxxxxx", -0x3E);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            SendChat_Func = (SendChat_pt)address;
+        SendChat_Func = (SendChat_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\x8D\x85\xE0\xFE\xFF\xFF\x50\x68\x1C\x01", "xxxxxxxxx"));
 
-        address = Scanner::Find("\xFC\x53\x56\x8B\xF1\x57\x6A\x05\xFF\x36\xE8", "xxxxxxxxxxx", -0xF);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            StartWhisper_Func = (StartWhisper_pt)address;
+        StartWhisper_Func = (StartWhisper_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\xFC\x53\x56\x8B\xF1\x57\x6A\x05\xFF\x36\xE8", "xxxxxxxxxxx"));
 
-        address = Scanner::Find("\x40\x25\xff\x01\x00\x00", "xxxxxx", -0x97);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            AddToChatLog_Func = (AddToChatLog_pt)address;
+        AddToChatLog_Func = (AddToChatLog_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\x40\x25\xff\x01\x00\x00", "xxxxxx"));
 
         address = Scanner::Find("\x8B\x45\x08\x83\x7D\x0C\x07\x74", "xxxxxxxx", -4);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::DATA))
             ChatBuffer_Addr = *(Chat::ChatBuffer***)address;
 
-        address = Scanner::Find("\x83\xc4\x04\x8d\x58\x2e\x8b\xc3", "xxxxxxxx", -0x18);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
-            RecvWhisper_Func = (RecvWhisper_pt)address;
+        RecvWhisper_Func = (RecvWhisper_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\x83\xc4\x04\x8d\x58\x2e\x8b\xc3", "xxxxxxxx"));
 
-        address = Scanner::FindAssertion("\\Code\\Engine\\Controls\\CtlEdit.cpp","charCount >= 1");
+        address = Scanner::FindAssertion("\\Code\\Engine\\Controls\\CtlEdit.cpp","charCount >= 1",0,0);
         if (address)
             address = Scanner::FindInRange("\x89\x7e\x44", "xxx", 5, address, address + 0x40);
         if(address && Scanner::IsValidPtr(*(uintptr_t*)address))
@@ -348,7 +336,7 @@ namespace {
             UICallback_AssignEditableText_Func = *(UI::UIInteractionCallback*)address;
 
 
-        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmChatLog.cpp", "m_itemCount <= CHAT_LOG_SIZE", 0x38);
+        address = GW::Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmChatLog.cpp", "m_itemCount <= CHAT_LOG_SIZE", 0, 0x38);
         if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::TEXT)) {
             UICallback_ChatLogLine_Func = *(GW::UI::UIInteractionCallback*)address;
             address = GW::Scanner::Find("\x83\xc4\x0c\x85\xc0\x75\x0c\x6a\x01", "xxxxxxxxx", 0x5);
@@ -357,9 +345,7 @@ namespace {
             }
         }
 
-        address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmChatLog.cpp", "m_itemCount <= CHAT_LOG_SIZE", -0x18);
-        if (address && Scanner::IsValidPtr(address, Scanner::TEXT))
-            PrintChatMessage_Func = (PrintChatMessage_pt)address;
+        PrintChatMessage_Func = (PrintChatMessage_pt)GW::Scanner::ToFunctionStart(Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmChatLog.cpp", "m_itemCount <= CHAT_LOG_SIZE", 0,0));
 
         GWCA_INFO("[SCAN] PrintChatMessage_Func = %p", PrintChatMessage_Func);
         GWCA_INFO("[SCAN] GetSenderColor = %p", GetSenderColor_Func);
@@ -398,7 +384,7 @@ namespace {
         HookBase::CreateHook((void**)&UICallback_AssignEditableText_Func, OnUICallback_AssignEditableText, (void**)& UICallback_AssignEditableText_Ret);
         HookBase::CreateHook((void**)&PrintChatMessage_Func, OnPrintChatMessage_Func, (void**)&PrintChatMessage_Ret);
 
-        for (size_t i = 0; i < (size_t)GW::Chat::Channel::CHANNEL_COUNT; i++) {
+        for (size_t i = 0; i < (size_t)GW::Chat::Channel::CHANNEL_COUNT && GetSenderColor_Ret && GetMessageColor_Ret; i++) {
             const auto chan = (GW::Chat::Channel)i;
             ChatSenderColor[chan] = 0;
             GetSenderColor_Ret(&ChatSenderColor[chan], chan);
