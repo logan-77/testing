@@ -141,11 +141,11 @@ namespace {
 
         DWORD address = 0;
         address = GW::Scanner::Find("\x8D\x04\xB6\xC1\xE0\x05\x05", "xxxxxxx", +7);
-        if (Scanner::IsValidPtr(*(uintptr_t*)address,Scanner::RDATA))
+        if (Scanner::IsValidPtr(*(uintptr_t*)address, GW::ScannerSection::Section_RDATA))
             skill_array_addr = *(Skill**)address;
 
         address = GW::Scanner::Find("\xba\x33\x00\x00\x00\x89\x08\x8d\x40\x04", "x?xxxxxxxx", -4);
-        if (Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::RDATA))
+        if (Scanner::IsValidPtr(*(uintptr_t*)address, GW::ScannerSection::Section_RDATA))
             attribute_array_addr = *(AttributeInfo**)address;
 
         UseSkill_Func = (UseSkill_pt)Scanner::ToFunctionStart(GW::Scanner::Find("\x85\xF6\x74\x5B\x83\xFE\x11\x74", "xxxxxxxx"), 0x200);

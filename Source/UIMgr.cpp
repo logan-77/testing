@@ -411,10 +411,10 @@ namespace {
 
 
         address = GW::Scanner::FindAssertion("\\Code\\Gw\\Pref\\PrConst.cpp", "pref < arrsize(s_enumInfo)", 0, 0x15);
-        if (address && GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
+        if (address && GW::Scanner::IsValidPtr(address, GW::ScannerSection::Section_TEXT))
             EnumPreferenceOptions_Addr = *(EnumPreferenceInfo**)address;
         address = GW::Scanner::FindAssertion("\\Code\\Gw\\Pref\\PrConst.cpp", "pref < arrsize(s_valueInfo)", 0, 0x15);
-        if (address && GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
+        if (address && GW::Scanner::IsValidPtr(address, GW::ScannerSection::Section_TEXT))
             NumberPreferenceOptions_Addr = *(NumberPreferenceInfo**)address;
 
 
@@ -428,7 +428,7 @@ namespace {
 
 
         address = Scanner::Find("\x8D\x4B\x28\x89\x73\x24\x8B\xD7", "xxxxxxx", +0x10);
-        if (address && GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT))
+        if (address && GW::Scanner::IsValidPtr(address, GW::ScannerSection::Section_TEXT))
             GameSettings_Addr = *(uintptr_t*)address;
 
         

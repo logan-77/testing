@@ -89,7 +89,7 @@ namespace {
         SetDifficulty_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
         address = Scanner::Find("\x8b\x78\x4c\x8d\x8f\x9c\x00\x00\x00", "xxxxxxxxx", -0xc);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT))
+        if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT))
             PartySearchSeek_Func = (PartySearchSeek_pt)address;
 
         // Party Search Window Button Callback functions
@@ -102,7 +102,7 @@ namespace {
         SetReadyStatus_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
         address = Scanner::Find("\x8d\x45\x10\x50\x56\x6a\x4d\x57","xxxxxxxx");
-        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+        if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT)) {
             address = Scanner::FindInRange("\x83\xc4\x04\x50\xe8", "xxxxx", 4, address, address + 0x64);
             FlagHeroAgent_Func = (FlagHeroAgent_pt)Scanner::FunctionFromNearCall(address);
             if(address) address = Scanner::FindInRange("\xc7\x45\xdc", "xxx", 7, address, address + 0x64);
@@ -110,14 +110,14 @@ namespace {
         }
 
         address = Scanner::Find("\x83\xc4\x10\x83\xff\x03\x75\x17", "xxxxxxxx",0x38);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+        if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT)) {
 
             LockPetTarget_Func = (LockPetTarget_pt)Scanner::FunctionFromNearCall(address);
             SetHeroBehavior_Func = (SetHeroBehavior_pt)Scanner::FunctionFromNearCall(address + 0x7);
         }
 
         address = Scanner::Find("\x6a\x00\x68\x00\x02\x02\x00\xff\x77\x04", "xxxxxxxxxx");
-        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+        if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT)) {
             //PartyRejectInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xb6);
             //PartyAcceptInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xcf);
         }

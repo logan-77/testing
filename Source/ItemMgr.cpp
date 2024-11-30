@@ -225,7 +225,7 @@ namespace {
         UseItem_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
 
         address = Scanner::Find("\x83\xc4\x04\x85\xc0\x0f?????\x8d\x45\x0c", "xxxxxx?????xxx");
-        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+        if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT)) {
             EquipItem_Func = (EquipItem_pt)Scanner::FunctionFromNearCall(address + 0x1e);
             MoveItem_Func = (MoveItem_pt)Scanner::FunctionFromNearCall(address + 0x6e);
         }
@@ -233,7 +233,7 @@ namespace {
 
         // @Cleanup: All of these functions could be done via UI messages
         address = Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmView.cpp", "param.notifyData",0,0);
-        if (Scanner::IsValidPtr(address, Scanner::TEXT)) {
+        if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT)) {
             const auto assertion_address = address;
             address = Scanner::FindInRange("\xe8", "x", 0, assertion_address + 0xf, assertion_address + 0x64);
             DropGold_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
@@ -286,7 +286,7 @@ namespace {
         }
 
         address = GW::Scanner::Find("\xff\x75\x0c\x81\xc1\xb4\x00\x00\x00","xxxxxxxxx", -0x11);
-        if (GW::Scanner::IsValidPtr(address, GW::Scanner::TEXT)) {
+        if (GW::Scanner::IsValidPtr(address, GW::ScannerSection::Section_TEXT)) {
             GetPvPItemUpgradeInfoName_Func = (GetPvPItemUpgradeInfoName_pt)address;
         }
 

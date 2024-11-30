@@ -5,15 +5,11 @@
 #include <GWCA/Utilities/Scanner.h>
 #include <DbgHelp.h>
 #include <GWCA/Utilities/Debug.h>
+#include <GWCA/Utilities/FileScanner.h>
 
 #pragma comment( lib, "dbghelp.lib" )
 
 namespace {
-    struct SectionOffset {
-        uintptr_t start = 0;
-        uintptr_t end = 0;
-    };
-    SectionOffset sections[3] = { 0 };
 
     std::string ucwords(const char* src) {
         const auto x = strlen(src);
@@ -33,172 +29,33 @@ namespace {
         }
         return dest;
     }
+    FileScanner fileScanner;
+
+    uintptr_t section_offset_from_disk = 0;
+    GW::ScannerSectionOffset mem_sections[GW::ScannerSection::Section_Count] = {};
 
 }
 uintptr_t GW::Scanner::FindAssertion(const char* assertion_file, const char* assertion_msg, uint32_t line_number, int offset) {
-    GWCA_ASSERT(assertion_file && *assertion_file);
-    GWCA_ASSERT(assertion_msg && *assertion_msg);
-    #pragma warning( push )
-    #pragma warning( disable : 4838 )
-    #pragma warning( disable : 4242 )
-    #pragma warning( disable : 4244 )
-    #pragma warning( disable : 4365 )
-    int i;
-    char assertion_bytes[] = "\x68????\xBA????\xB9????";
-    char assertion_mask[] = "xxxxxxxxxxxxxxx";
-
-    char* assertion_bytes_ptr = &assertion_bytes[5];
-    char* assertion_mask_ptr = &assertion_mask[5];
-
-    
-    if (line_number) {
-        if ((line_number & 0xff) == line_number) {
-            // PUSH uint8
-            assertion_bytes_ptr = &assertion_bytes[3];
-            assertion_mask_ptr = &assertion_mask[3];
-            assertion_bytes[3] = 0x6a;
-            assertion_bytes[4] = line_number;
-        }
-        else {
-            // PUSH uint32
-            assertion_bytes_ptr = &assertion_bytes[0];
-            assertion_mask_ptr = &assertion_mask[0];
-            assertion_bytes[0] = 0x68;
-            assertion_bytes[1] = line_number;
-            assertion_bytes[2] = line_number >> 8;
-            assertion_bytes[3] = line_number >> 16;
-            assertion_bytes[4] = line_number >> 24;
-        }
-    }
-    offset += &assertion_mask[5] - assertion_mask_ptr; // Legacy code meant that offsets are calculated from the \xBA instruction
-    
-    char assertion_message_mask[128];
-    for (i = 0; assertion_msg[i]; i++) {
-        assertion_message_mask[i] = 'x';
-    }
-    assertion_message_mask[i++] = 'x';
-    assertion_message_mask[i] = 0;
-
-    char assertion_file_mask[128];
-    for (i = 0; assertion_file[i]; i++) {
-        assertion_file_mask[i] = 'x';
-    }
-    assertion_file_mask[i++] = 'x';
-    assertion_file_mask[i] = 0;
-    
-    uintptr_t start = 0;
-    uintptr_t end = 0;
-
-    Scanner::GetSectionAddressRange(Section::RDATA, &start, &end);
-
-    uint32_t assertion_message_offset = start;
-    uintptr_t found = 0;
-    for (;;) {
-        found = FindInRange(assertion_msg, assertion_message_mask, 0, assertion_message_offset, end);
-        if (!found)
-            break;
-
-        assertion_message_offset = found + 1;
-
-        assertion_bytes[11] = found;
-        assertion_bytes[12] = found >> 8;
-        assertion_bytes[13] = found >> 16;
-        assertion_bytes[14] = found >> 24;
-
-        uint32_t assertion_file_offset = start;
-        for (;;) {
-            found = FindInRange(assertion_file, assertion_file_mask, 0, assertion_file_offset, end);
-            if (!found) {
-                // try lower case file name
-                found = FindInRange(strtolower(assertion_file).c_str(), assertion_file_mask, 0, assertion_file_offset, end);
-            }
-            if (!found) {
-                // try camel case file name
-                found = FindInRange(ucwords(assertion_file).c_str(), assertion_file_mask, 0, assertion_file_offset, end);
-            }
-            if (!found)
-                break;
-
-            assertion_file_offset = found + 1;
-
-            // Find disk path colon minus one for find the start of the assertion string e.g. p:/
-            if (((char*)found)[1] != ':') {
-                found = FindInRange(":", "x", -0x1, found, found - 128);
-                if (!found)
-                    break;
-            }
-
-            assertion_bytes[6] = found;
-            assertion_bytes[7] = found >> 8;
-            assertion_bytes[8] = found >> 16;
-            assertion_bytes[9] = found >> 24;
-
-            found = Find(assertion_bytes_ptr, assertion_mask_ptr, offset);
-            if (found)
-                return found;
-        }
-    }
-    return 0;
-    #pragma warning(pop)
+    const auto found = fileScanner.FindAssertion(assertion_file, assertion_msg, line_number, offset);
+    return found ? found - section_offset_from_disk : found;
 }
 uintptr_t GW::Scanner::FindInRange(const char* pattern, const char* mask, int offset, DWORD start, DWORD end) {
-    char first = pattern[0];
-    size_t patternLength = strlen(mask ? mask : pattern);
-    bool found = false;
-    end -= patternLength;
-
-    if (start > end) {
-        // Scan backward
-        for (DWORD i = start; i >= end; i--) {
-            if (*(char*)i != first)
-                continue;
-            found = true;
-            //For each byte in the pattern
-            for (size_t idx = 0; idx < patternLength; idx++) {
-                if ((!mask || mask[idx] == 'x') && pattern[idx] != *(char*)(i + idx)) {
-                    found = false;
-                    break;
-                }
-            }
-            if (found)
-                return i + offset;
-        }
-    }
-    else {
-        // Scan forward
-        for (DWORD i = start; i < end; i++) {
-            if (*(char*)i != first)
-                continue;
-            found = true;
-            //For each byte in the pattern
-            for (size_t idx = 0; idx < patternLength; idx++) {
-                if ((!mask || mask[idx] == 'x') && pattern[idx] != *(char*)(i + idx)) {
-                    found = false;
-                    break;
-                }
-            }
-            if (found)
-                return i + offset;
-        }
-    }
-    return NULL;
+    const auto found = fileScanner.FindInRange(pattern, mask, offset, start + section_offset_from_disk, end + section_offset_from_disk);
+    return found ? found - section_offset_from_disk : found;
 }
-void GW::Scanner::GetSectionAddressRange(Section section, uintptr_t* start, uintptr_t* end) {
-    if (start)
-        *start = sections[section].start;
-    if (end)
-        *end = sections[section].end;
+void GW::Scanner::GetSectionAddressRange(ScannerSection section, uintptr_t* start, uintptr_t* end) {
+    return fileScanner.GetSectionAddressRange(section, start, end);
 }
-uintptr_t GW::Scanner::Find(const char* pattern, const char* mask, int offset, Section section) {
-    return FindInRange(pattern, mask, offset, sections[section].start, sections[section].end);
+uintptr_t GW::Scanner::Find(const char* pattern, const char* mask, int offset, ScannerSection section) {
+    return FindInRange(pattern, mask, offset, mem_sections[section].start, mem_sections[section].end);
 }
 
-bool GW::Scanner::IsValidPtr(uintptr_t address, Section section) {
-    return address && address > sections[section].start && address < sections[section].end;
+bool GW::Scanner::IsValidPtr(uintptr_t address, ScannerSection section) {
+    return address && address > mem_sections[section].start && address < mem_sections[section].end;
 }
 
 uintptr_t GW::Scanner::FunctionFromNearCall(uintptr_t call_instruction_address, bool check_valid_ptr) {
-    if (!IsValidPtr(call_instruction_address,Section::TEXT))
+    if (!IsValidPtr(call_instruction_address, ScannerSection::Section_TEXT))
         return 0;
     uintptr_t function_address = 0;
     switch (((*(uintptr_t*)call_instruction_address) & 0x000000ff)) {
@@ -214,7 +71,7 @@ uintptr_t GW::Scanner::FunctionFromNearCall(uintptr_t call_instruction_address, 
     default:
         return 0; // Not a near call instruction
     }
-    if (check_valid_ptr && !IsValidPtr(function_address, Section::TEXT))
+    if (check_valid_ptr && !IsValidPtr(function_address, ScannerSection::Section_TEXT))
         return 0;
     // Check to see if there are any nested JMP's etc
     if (const auto nested_call = FunctionFromNearCall(function_address, check_valid_ptr)) {
@@ -228,6 +85,13 @@ uintptr_t GW::Scanner::ToFunctionStart(uintptr_t call_instruction_address, uint3
 }
 
 void GW::Scanner::Initialize(HMODULE hModule) {
+
+    wchar_t filename[255];
+    if (!(hModule && GetModuleFileNameW(hModule, filename, _countof(filename))))
+        throw 1;
+    if (!FileScanner::CreateFromPath(filename, &fileScanner)) {
+        throw 1;
+    }
     uint32_t dllImageBase = (uint32_t)hModule;
     IMAGE_NT_HEADERS* pNtHdr = ImageNtHeader(hModule);
     IMAGE_SECTION_HEADER* pSectionHdr = (IMAGE_SECTION_HEADER*)(pNtHdr + 1);
@@ -237,26 +101,23 @@ void GW::Scanner::Initialize(HMODULE hModule) {
         char* name = (char*)pSectionHdr->Name;
         uint8_t section = 0x8;
         if (memcmp(name, ".text", 5) == 0)
-            section = Section::TEXT;
+            section = ScannerSection::Section_TEXT;
         else if (memcmp(name, ".rdata", 6) == 0)
-            section = Section::RDATA;
+            section = ScannerSection::Section_RDATA;
         else if (memcmp(name, ".data", 5) == 0)
-            section = Section::DATA;
+            section = ScannerSection::Section_DATA;
         if (section != 0x8) {
-            sections[section].start = dllImageBase + pSectionHdr->VirtualAddress;
-            sections[section].end = sections[section].start + pSectionHdr->Misc.VirtualSize;
+            mem_sections[section].start = dllImageBase + pSectionHdr->VirtualAddress;
+            mem_sections[section].end = mem_sections[section].start + pSectionHdr->Misc.VirtualSize;
         }
         pSectionHdr++;
     }
-    if (!(sections[Section::TEXT].start && sections[Section::TEXT].end))
+    if (!(mem_sections[ScannerSection::Section_TEXT].start && mem_sections[ScannerSection::Section_TEXT].end))
         throw 1;
+
+    section_offset_from_disk = fileScanner.sections[ScannerSection::Section_TEXT].start - mem_sections[ScannerSection::Section_TEXT].start;
 }
 
 void GW::Scanner::Initialize(const char* moduleName) {
     return Initialize(GetModuleHandleA(moduleName));
-}
-
-void GW::Scanner::Initialize(uintptr_t start, size_t size) {
-    sections[Section::TEXT].start = start;
-    sections[Section::TEXT].end = start + size;
 }

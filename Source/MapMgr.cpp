@@ -138,7 +138,7 @@ namespace {
             region_id_addr = *(GW::Constants::ServerRegion**)(address);
 
         address = Scanner::Find("\x6B\xC6\x7C\x5E\x05", "xxxxx", 5);
-        if (address && Scanner::IsValidPtr(*(uintptr_t*)address,Scanner::Section::RDATA))
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, ScannerSection::Section_RDATA))
             area_info_addr = *(AreaInfo**)(address);
 
         address = Scanner::Find("\x6A\x2C\x50\xE8\x00\x00\x00\x00\x83\xC4\x08\xC7", "xxxx????xxxx", +0xd);

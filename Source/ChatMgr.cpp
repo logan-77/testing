@@ -320,7 +320,7 @@ namespace {
         AddToChatLog_Func = (AddToChatLog_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\x40\x25\xff\x01\x00\x00", "xxxxxx"));
 
         address = Scanner::Find("\x8B\x45\x08\x83\x7D\x0C\x07\x74", "xxxxxxxx", -4);
-        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::DATA))
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, ScannerSection::Section_DATA))
             ChatBuffer_Addr = *(Chat::ChatBuffer***)address;
 
         RecvWhisper_Func = (RecvWhisper_pt)GW::Scanner::ToFunctionStart(Scanner::Find("\x83\xc4\x04\x8d\x58\x2e\x8b\xc3", "xxxxxxxx"));
@@ -332,12 +332,12 @@ namespace {
             IsTyping_FrameId = *(uint32_t **)address;
 
         address = Scanner::Find("\x6a\x06\x68\x00\x03\x80\x00","xxxxxxx",-0x4);
-        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::TEXT))
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, ScannerSection::Section_TEXT))
             UICallback_AssignEditableText_Func = *(UI::UIInteractionCallback*)address;
 
 
         address = GW::Scanner::FindAssertion("\\Code\\Gw\\Ui\\Game\\GmChatLog.cpp", "m_itemCount <= CHAT_LOG_SIZE", 0, 0x38);
-        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::TEXT)) {
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, ScannerSection::Section_TEXT)) {
             UICallback_ChatLogLine_Func = *(GW::UI::UIInteractionCallback*)address;
             address = GW::Scanner::Find("\x83\xc4\x0c\x85\xc0\x75\x0c\x6a\x01", "xxxxxxxxx", 0x5);
             if (address) {

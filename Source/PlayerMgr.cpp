@@ -51,7 +51,7 @@ namespace {
         DepositFaction_Func = (DepositFaction_pt)Scanner::FunctionFromNearCall(address);
 
         address = Scanner::FindAssertion("\\Code\\Gw\\Const\\ConstTitle.cpp", "index < arrsize(s_titleClientData)", 0, 0x12);
-        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, Scanner::RDATA))
+        if (address && Scanner::IsValidPtr(*(uintptr_t*)address, ScannerSection::Section_RDATA))
             title_data = *(TitleClientData**)address;
 
         GWCA_INFO("[SCAN] title_data = %p", title_data);

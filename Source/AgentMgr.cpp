@@ -151,7 +151,7 @@ namespace {
 
         // @Cleanup: try to do this via UI controls to avoid more signature scans
         address = Scanner::Find("\x89\x4b\x24\x8b\x4b\x28\x83\xe9\x00", "xxxxxxxxx");
-        if (Scanner::IsValidPtr(address,Scanner::TEXT)) {
+        if (Scanner::IsValidPtr(address,ScannerSection::Section_TEXT)) {
             SendAgentDialog_Func = (SendDialog_pt)Scanner::FunctionFromNearCall(address + 0x15);
             SendGadgetDialog_Func = (SendDialog_pt)Scanner::FunctionFromNearCall(address + 0x25);
         }

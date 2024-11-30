@@ -48,7 +48,7 @@ bool GW::MemoryMgr::Scan() {
         WinHandlePtr = *(uintptr_t *)address;
 
     address = Scanner::FindAssertion("\\Code\\Base\\Os\\Win32\\OsAnsi.cpp", "chars>=MAX_PATH", 0, -0x24);
-    if (Scanner::IsValidPtr(address, Scanner::Section::TEXT))
+    if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT))
         GetPersonalDirPtr = address;// @Cleanup: this is a function!
 
     address = Scanner::FindAssertion("\\Code\\Engine\\Event\\EvtRec.cpp", "filename", 0,0x4b);
@@ -65,7 +65,7 @@ bool GW::MemoryMgr::Scan() {
     address = Scanner::FunctionFromNearCall(address);
     if (address) {
         address = address + 0x39;
-        if(Scanner::IsValidPtr(*(uintptr_t*)address,Scanner::Section::TEXT))
+        if(Scanner::IsValidPtr(*(uintptr_t*)address,ScannerSection::Section_TEXT))
             MemFree_Func =  * (MemFree_pt*)address;
     }
 
