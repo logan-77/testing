@@ -64,17 +64,6 @@ namespace {
     DoAction_pt OpenLockedChest_Func = 0;
     DoAction_pt DestroyItem_Func = 0;
 
-    typedef void(__cdecl* Void_pt)();
-    Void_pt SalvageSessionCancel_Func = 0;
-    Void_pt SalvageSessionComplete_Func = 0;
-    Void_pt SalvageMaterials_Func = 0;
-
-    typedef void(__cdecl* SalvageStart_pt)(uint32_t salvage_kit_id, uint32_t salvage_session_id, uint32_t item_id);
-    SalvageStart_pt SalvageStart_Func = 0;
-
-    typedef void(__cdecl* IdentifyItem_pt)(uint32_t identification_kit_id, uint32_t item_id);
-    IdentifyItem_pt IdentifyItem_Func = 0;
-
     HookEntry OnUseItem_Entry;
     DoAction_pt UseItem_Func = 0;
     DoAction_pt UseItem_Ret = 0;
@@ -181,6 +170,8 @@ namespace {
 
     GW::UI::UIInteractionCallback OnSalvagePopup_UICallback_Func = 0, OnSalvagePopup_UICallback_Ret = 0;
 
+    GW::UI::UIInteractionCallback InventorySlot_UICallback_Func = 0;
+
     void OnSalvagePopup_UICallback(GW::UI::InteractionMessage* message, void* wParam, void* lParam) {
         GW::Hook::EnterHook();
         OnSalvagePopup_UICallback_Ret(message, wParam, lParam);
@@ -255,19 +246,10 @@ namespace {
             const auto assertion_address = address;
             address = Scanner::FindInRange("\xe8", "x", 0, assertion_address + 0xf, assertion_address + 0x64);
             DropGold_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address);
-            address = Scanner::FindInRange("\xe8", "x", 0, assertion_address, assertion_address - 0x64);
-            SalvageSessionCancel_Func = (Void_pt)Scanner::FunctionFromNearCall(address);
-            address = Scanner::FindInRange("\xe8", "x", 0, address, address - 0x64);
-            SalvageSessionComplete_Func = (Void_pt)Scanner::FunctionFromNearCall(address);
-            address = Scanner::FindInRange("\xe8", "x", 0, address, address - 0x64);
-            SalvageMaterials_Func = (Void_pt)Scanner::FunctionFromNearCall(address);
         }
 
         OnSalvagePopup_UICallback_Func = (UI::UIInteractionCallback)Scanner::ToFunctionStart(Scanner::FindAssertion("InvSalvage.cpp","m_toolId",0,0),0x200);
-
-        SalvageStart_Func = (SalvageStart_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x14\x68\x25\x06\x00\x00", "xxxxxxx"));
-
-        IdentifyItem_Func = (IdentifyItem_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x1a\x68\x88\x05\x00\x00", "xxxxxxx"));
+        InventorySlot_UICallback_Func = (UI::UIInteractionCallback)Scanner::ToFunctionStart(Scanner::FindAssertion("InvSlot.cpp", "!m_dragOverlayTexture", 0, 0), 0xfff);
 
         address = Scanner::Find("\x83\xc4\x40\x6a\x00\x6a\x19", "xxxxxxx", -0x4e);
         DropItem_Func = (DropItem_pt)Scanner::FunctionFromNearCall(address);
@@ -316,6 +298,7 @@ namespace {
             item_formula_count = *(uint32_t*)(address + -0xb);
         }
         GWCA_INFO("[SCAN] OnSalvagePopup_UICallback_Func = %p", OnSalvagePopup_UICallback_Func);
+        GWCA_INFO("[SCAN] InventorySlot_UICallback_Func = %p", InventorySlot_UICallback_Func);
         GWCA_INFO("[SCAN] item_formulas = %p, item_count = %p", item_formulas, item_formula_count);
         GWCA_INFO("[SCAN] StorageOpenPtr = %p", storage_open_addr);
         GWCA_INFO("[SCAN] OnItemClick Function = %p", ItemClick_Func);
@@ -329,14 +312,12 @@ namespace {
         GWCA_INFO("[SCAN] ChangeGold Function = %p", ChangeGold_Func);
         GWCA_INFO("[SCAN] OpenLockedChest Function = %p", OpenLockedChest_Func);
         GWCA_INFO("[SCAN] PingWeaponSet_Func = %p", PingWeaponSet_Func);
-        GWCA_INFO("[SCAN] SalvageSessionCancel_Func = %p", SalvageSessionCancel_Func);
-        GWCA_INFO("[SCAN] SalvageSessionComplete_Func = %p", SalvageSessionComplete_Func);
-        GWCA_INFO("[SCAN] SalvageMaterials_Func = %p", SalvageMaterials_Func);
         GWCA_INFO("[SCAN] unlocked_pvp_item_upgrade_array.m_buffer = %p", unlocked_pvp_item_upgrade_array.m_buffer);
         GWCA_INFO("[SCAN] unlocked_pvp_item_upgrade_array.m_size = %p", unlocked_pvp_item_upgrade_array.m_size);
         GWCA_INFO("[SCAN] GetPvPItemUpgradeInfoName_Func = %p", GetPvPItemUpgradeInfoName_Func);
 #ifdef _DEBUG
         GWCA_ASSERT(OnSalvagePopup_UICallback_Func);
+        GWCA_ASSERT(InventorySlot_UICallback_Func);
         GWCA_ASSERT(item_formulas);
         GWCA_ASSERT(storage_open_addr);
         GWCA_ASSERT(ItemClick_Func);
@@ -349,10 +330,6 @@ namespace {
         GWCA_ASSERT(ChangeGold_Func);
         GWCA_ASSERT(OpenLockedChest_Func);
         GWCA_ASSERT(PingWeaponSet_Func);
-        GWCA_ASSERT(SalvageSessionCancel_Func);
-        GWCA_ASSERT(SalvageSessionComplete_Func);
-        GWCA_ASSERT(SalvageMaterials_Func);
-        GWCA_ASSERT(SalvageStart_Func);
         GWCA_ASSERT(unlocked_pvp_item_upgrade_array.m_buffer);
         GWCA_ASSERT(unlocked_pvp_item_upgrade_array.m_size);
         GWCA_ASSERT(GetPvPItemUpgradeInfoName_Func);
@@ -597,9 +574,6 @@ namespace GW {
             return GW::UI::ButtonClick(btn);
         }
 
-        bool SalvageSessionDone() {
-            return SalvageSessionComplete_Func ? SalvageSessionComplete_Func(), true : false;
-        }
         bool DestroyItem(uint32_t item_id) {
             return DestroyItem_Func ? DestroyItem_Func(item_id), true : false;
         }
@@ -623,25 +597,48 @@ namespace GW {
             //return SalvageMaterials_Func ? SalvageMaterials_Func(), true : false;
         }
 
-        bool SalvageStart(uint32_t salvage_kit_id, uint32_t item_id) {
-            if (!(SalvageStart_Func && CanInteractWithItem(GetItemById(salvage_kit_id))
+        bool SalvageStart(uint32_t kit_id, uint32_t item_id) {
+            if (!(InventorySlot_UICallback_Func && CanInteractWithItem(GetItemById(kit_id))
                 && CanInteractWithItem(GetItemById(item_id)))) {
                 return false;
             }
-            GW::UI::UIPacket::kPreStartSalvage packet = {
-                item_id, salvage_kit_id
-            };
-            GW::UI::SendUIMessage(GW::UI::UIMessage::kPreStartSalvage, &packet);
-            SalvageStart_Func(salvage_kit_id, GetSalvageSessionId(), item_id);
+            UI::InteractionMessage message = { 0 };
+            message.message_id = GW::UI::UIMessage::kMouseClick2;
+            uint32_t wparam[4] = { 0 };
+            wparam[1] = 1; // Salvage action
+            wparam[2] = 6; // Click event
+            wparam[3] = kit_id;
+
+            uint32_t uictl_struct[7] = { 0 };
+            uictl_struct[6] = item_id; // Fake that the current frame context matches the item we want
+
+            void* wParam_pt = &uictl_struct;
+            message.wParam = &wParam_pt;
+
+            InventorySlot_UICallback_Func(&message, wparam, nullptr);
             return true;
         }
 
-        bool IdentifyItem(uint32_t identification_kit_id, uint32_t item_id) {
-            if (!(CanInteractWithItem(GetItemById(identification_kit_id))
+        bool IdentifyItem(uint32_t kit_id, uint32_t item_id) {
+            if (!(InventorySlot_UICallback_Func && CanInteractWithItem(GetItemById(kit_id))
                 && CanInteractWithItem(GetItemById(item_id)))) {
                 return false;
             }
-            return IdentifyItem_Func ? IdentifyItem_Func(identification_kit_id, item_id), true : false;
+            UI::InteractionMessage message = { 0 };
+            message.message_id = GW::UI::UIMessage::kMouseClick2;
+            uint32_t wparam[4] = { 0 };
+            wparam[1] = 2; // Identify action
+            wparam[2] = 6; // Click event
+            wparam[3] = kit_id;
+
+            uint32_t uictl_struct[7] = { 0 };
+            uictl_struct[6] = item_id; // Fake that the current frame context matches the item we want
+
+            void* wParam_pt = &uictl_struct;
+            message.wParam = &wParam_pt;
+
+            InventorySlot_UICallback_Func(&message, wparam, nullptr);
+            return true;
         }
 
         uint32_t GetGoldAmountOnCharacter() {

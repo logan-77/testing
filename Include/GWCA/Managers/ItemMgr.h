@@ -94,9 +94,6 @@ namespace GW {
         // Cancel the current salvage session
         GWCA_API bool SalvageSessionCancel();
 
-        // Acknowledge that the salvage session is complete
-        GWCA_API bool SalvageSessionDone();
-
         // Trash an item from inventory
         GWCA_API bool DestroyItem(uint32_t item_id);
 
