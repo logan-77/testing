@@ -34,6 +34,10 @@ namespace GW {
     extern Module ItemModule;
 
     namespace Items {
+
+        // Retrieve the current context for the item being salvaged - created when the salvage popup is shown
+        GWCA_API SalvageSessionInfo* GetSalvageSessionInfo();
+
         // Get full array of items sorted by ItemID.
         GWCA_API ItemArray* GetItemArray();
 

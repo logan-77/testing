@@ -332,6 +332,7 @@ namespace GW {
             kInventorySlotCleared       = 0x10000000 | 0xEF, // undocumented. Triggered when an item has been removed from a slot
             kEquipmentSlotCleared       = 0x10000000 | 0xF0, // undocumented. Triggered when an item has been removed from a slot
             kPvPWindowContent           = 0x10000000 | 0xF8,
+            kPreStartSalvage            = 0x10000000 | 0x100, // { uint32_t item_id, uint32_t kit_id }
             kTradePlayerUpdated         = 0x10000000 | 0x103, // wparam = GW::TraderPlayer*
             kItemUpdated                = 0x10000000 | 0x104, // wparam = UIPacket::kItemUpdated*
             kMapChange                  = 0x10000000 | 0x10F, // wparam = map id
@@ -414,6 +415,10 @@ namespace GW {
         enum class EnumPreference : uint32_t;
 
         namespace UIPacket {
+            struct kPreStartSalvage {
+                uint32_t item_id;
+                uint32_t kit_id;
+            };
             struct kServerActiveQuestChanged {
                 GW::Constants::QuestID quest_id;
                 GW::GamePos marker;

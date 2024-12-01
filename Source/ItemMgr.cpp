@@ -177,6 +177,24 @@ namespace {
         HookBase::LeaveHook();
     }
 
+    SalvageSessionInfo* salvage_context = nullptr;
+
+    GW::UI::UIInteractionCallback OnSalvagePopup_UICallback_Func = 0, OnSalvagePopup_UICallback_Ret = 0;
+
+    void OnSalvagePopup_UICallback(GW::UI::InteractionMessage* message, void* wParam, void* lParam) {
+        GW::Hook::EnterHook();
+        OnSalvagePopup_UICallback_Ret(message, wParam, lParam);
+        switch (message->message_id) {
+        case GW::UI::UIMessage::kInitFrame:
+            salvage_context = *(SalvageSessionInfo**)message->wParam;
+            break;
+        case GW::UI::UIMessage::kDestroyFrame:
+            salvage_context = nullptr;
+            break;
+        }
+        GW::Hook::LeaveHook();
+    }
+
 
     ItemFormula* item_formulas = nullptr;
     uint32_t item_formula_count = 0;
@@ -245,6 +263,8 @@ namespace {
             SalvageMaterials_Func = (Void_pt)Scanner::FunctionFromNearCall(address);
         }
 
+        OnSalvagePopup_UICallback_Func = (UI::UIInteractionCallback)Scanner::ToFunctionStart(Scanner::FindAssertion("InvSalvage.cpp","m_toolId",0,0),0x200);
+
         SalvageStart_Func = (SalvageStart_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x14\x68\x25\x06\x00\x00", "xxxxxxx"));
 
         IdentifyItem_Func = (IdentifyItem_pt)Scanner::ToFunctionStart(Scanner::Find("\x75\x1a\x68\x88\x05\x00\x00", "xxxxxxx"));
@@ -295,7 +315,7 @@ namespace {
             item_formulas = *(ItemFormula**)(address + 0x15);
             item_formula_count = *(uint32_t*)(address + -0xb);
         }
-
+        GWCA_INFO("[SCAN] OnSalvagePopup_UICallback_Func = %p", OnSalvagePopup_UICallback_Func);
         GWCA_INFO("[SCAN] item_formulas = %p, item_count = %p", item_formulas, item_formula_count);
         GWCA_INFO("[SCAN] StorageOpenPtr = %p", storage_open_addr);
         GWCA_INFO("[SCAN] OnItemClick Function = %p", ItemClick_Func);
@@ -316,6 +336,7 @@ namespace {
         GWCA_INFO("[SCAN] unlocked_pvp_item_upgrade_array.m_size = %p", unlocked_pvp_item_upgrade_array.m_size);
         GWCA_INFO("[SCAN] GetPvPItemUpgradeInfoName_Func = %p", GetPvPItemUpgradeInfoName_Func);
 #ifdef _DEBUG
+        GWCA_ASSERT(OnSalvagePopup_UICallback_Func);
         GWCA_ASSERT(item_formulas);
         GWCA_ASSERT(storage_open_addr);
         GWCA_ASSERT(ItemClick_Func);
@@ -337,7 +358,12 @@ namespace {
         GWCA_ASSERT(GetPvPItemUpgradeInfoName_Func);
         GWCA_ASSERT(DestroyItem_Func);
 #endif
-        HookBase::CreateHook((void**)&ItemClick_Func, OnItemClick, (void**)&RetItemClick);
+
+        if (OnSalvagePopup_UICallback_Func)
+            HookBase::CreateHook((void**)&OnSalvagePopup_UICallback_Func, OnSalvagePopup_UICallback, (void**)&OnSalvagePopup_UICallback_Ret);
+
+        if(ItemClick_Func)
+            HookBase::CreateHook((void**)&ItemClick_Func, OnItemClick, (void**)&RetItemClick);
         if (PingWeaponSet_Func) {
             HookBase::CreateHook((void**)&PingWeaponSet_Func, OnPingWeaponSet, (void**)&PingWeaponSet_Ret);
             UI::RegisterUIMessageCallback(&OnPingWeaponSet_Entry, UI::UIMessage::kSendPingWeaponSet, OnPingWeaponSet_UIMessage, 0x1);
@@ -356,6 +382,8 @@ namespace {
     }
 
     void EnableHooks() {
+        if(OnSalvagePopup_UICallback_Func)
+            HookBase::EnableHooks(OnSalvagePopup_UICallback_Func);
         if (ItemClick_Func)
             HookBase::EnableHooks(ItemClick_Func);
         if (PingWeaponSet_Func)
@@ -367,6 +395,8 @@ namespace {
     }
 
     void DisableHooks() {
+        if(OnSalvagePopup_UICallback_Func)
+            HookBase::DisableHooks(OnSalvagePopup_UICallback_Func);
         if (ItemClick_Func)
             HookBase::DisableHooks(ItemClick_Func);
         if (PingWeaponSet_Func)
@@ -380,6 +410,7 @@ namespace {
     }
 
     void Exit() {
+        HookBase::RemoveHook(OnSalvagePopup_UICallback_Func);
         HookBase::RemoveHook(ItemClick_Func);
         HookBase::RemoveHook(PingWeaponSet_Func);
         HookBase::RemoveHook(MoveItem_Func);
@@ -425,6 +456,10 @@ namespace GW {
         return false;
     }
     namespace Items {
+
+        SalvageSessionInfo* GetSalvageSessionInfo() {
+            return salvage_context;
+        }
 
         void OpenXunlaiWindow(bool anniversary_pane_unlocked) {
             Packet::StoC::DataWindow pack{};
@@ -556,7 +591,10 @@ namespace GW {
         }
 
         bool SalvageSessionCancel() {
-            return SalvageSessionCancel_Func ? SalvageSessionCancel_Func(), true : false;
+            if (!salvage_context)
+                return false;
+            const auto btn = GW::UI::GetChildFrame(GW::UI::GetFrameById(salvage_context->frame_id), 1);
+            return GW::UI::ButtonClick(btn);
         }
 
         bool SalvageSessionDone() {
@@ -567,15 +605,35 @@ namespace GW {
         }
 
         bool SalvageMaterials() {
-            return SalvageMaterials_Func ? SalvageMaterials_Func(), true : false;
+            if (!salvage_context)
+                return false;
+            const auto prev_context = *salvage_context;
+            // Choose materials
+            salvage_context->chosen_salvagable = 3;
+            // Clear salvagable list to avoid the extra "are you sure" prompt
+            salvage_context->salvagable_1 = 0;
+            salvage_context->salvagable_2 = 0;
+            salvage_context->salvagable_3 = 0;
+            // Click "salvage"
+            const auto btn = GW::UI::GetChildFrame(GW::UI::GetFrameById(salvage_context->frame_id), 2);
+            bool ok = GW::UI::ButtonClick(btn);
+            if(salvage_context)
+                *salvage_context = prev_context;
+            return ok;
+            //return SalvageMaterials_Func ? SalvageMaterials_Func(), true : false;
         }
 
         bool SalvageStart(uint32_t salvage_kit_id, uint32_t item_id) {
-            if (!(CanInteractWithItem(GetItemById(salvage_kit_id))
+            if (!(SalvageStart_Func && CanInteractWithItem(GetItemById(salvage_kit_id))
                 && CanInteractWithItem(GetItemById(item_id)))) {
                 return false;
             }
-            return SalvageStart_Func ? SalvageStart_Func(salvage_kit_id, GetSalvageSessionId(), item_id), true : false;
+            GW::UI::UIPacket::kPreStartSalvage packet = {
+                item_id, salvage_kit_id
+            };
+            GW::UI::SendUIMessage(GW::UI::UIMessage::kPreStartSalvage, &packet);
+            SalvageStart_Func(salvage_kit_id, GetSalvageSessionId(), item_id);
+            return true;
         }
 
         bool IdentifyItem(uint32_t identification_kit_id, uint32_t item_id) {
