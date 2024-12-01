@@ -307,6 +307,7 @@ namespace GW {
             kTitleProgressUpdated       = 0x10000000 | 0x65, // wparam = title_id
             kExperienceGained           = 0x10000000 | 0x66, // wparam = experience amount
             kWriteToChatLog             = 0x10000000 | 0x7E, // wparam = UIPacket::kWriteToChatLog*. Triggered by the game when it wants to add a new message to chat.
+            kWriteToChatLogWithSender   = 0x10000000 | 0x7f, // wparam = UIPacket::kWriteToChatLogWithSender*. Triggered by the game when it wants to add a new message to chat.
             kPlayerChatMessage          = 0x10000000 | 0x81, // wparam = UIPacket::kPlayerChatMessage*
             kFriendUpdated              = 0x10000000 | 0x89, // wparam = { GW::Friend*, ... }
             kMapLoaded                  = 0x10000000 | 0x8A,
@@ -483,7 +484,7 @@ namespace GW {
                 GW::Chat::Channel channel_dupe;
             };
             struct kPlayerChatMessage {
-                uint32_t channel;
+                GW::Chat::Channel channel;
                 wchar_t* message;
                 uint32_t player_number;
             };
@@ -506,6 +507,12 @@ namespace GW {
             struct kGetColor {
                 Chat::Color* color;
                 GW::Chat::Channel channel;
+            };
+
+            struct kWriteToChatLogWithSender {
+                uint32_t channel;
+                wchar_t* message;
+                wchar_t* sender_enc;
             };
 
             struct kSendLoadSkillbar {
