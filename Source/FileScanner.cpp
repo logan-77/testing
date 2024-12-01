@@ -222,25 +222,7 @@ uintptr_t FileScanner::FindAssertion(const char* assertion_file, const char* ass
     char* assertion_mask_ptr = &assertion_mask[5];
 
     
-    if (line_number) {
-        if ((line_number & 0xff) == line_number) {
-            // PUSH uint8
-            assertion_bytes_ptr = &assertion_bytes[3];
-            assertion_mask_ptr = &assertion_mask[3];
-            assertion_bytes[3] = 0x6a;
-            assertion_bytes[4] = line_number;
-        }
-        else {
-            // PUSH uint32
-            assertion_bytes_ptr = &assertion_bytes[0];
-            assertion_mask_ptr = &assertion_mask[0];
-            assertion_bytes[0] = 0x68;
-            assertion_bytes[1] = line_number;
-            assertion_bytes[2] = line_number >> 8;
-            assertion_bytes[3] = line_number >> 16;
-            assertion_bytes[4] = line_number >> 24;
-        }
-    }
+
     offset += &assertion_mask[5] - assertion_mask_ptr; // Legacy code meant that offsets are calculated from the \xBA instruction
     
     char assertion_message_mask[128];
@@ -310,9 +292,35 @@ uintptr_t FileScanner::FindAssertion(const char* assertion_file, const char* ass
             assertion_bytes[8] = found_enc >> 16;
             assertion_bytes[9] = found_enc >> 24;
 
-            found = Find(assertion_bytes_ptr, assertion_mask_ptr, offset);
-            if (found) {
-                return found;
+            if (line_number) {
+                if ((line_number & 0xff) == line_number) {
+                    // PUSH uint8
+                    assertion_bytes_ptr = &assertion_bytes[3];
+                    assertion_mask_ptr = &assertion_mask[3];
+                    assertion_bytes[3] = 0x6a;
+                    assertion_bytes[4] = line_number;
+                    found = Find(assertion_bytes_ptr, assertion_mask_ptr, offset);
+                    if (found)
+                        return found;
+                }
+                // PUSH uint32
+                assertion_bytes_ptr = &assertion_bytes[0];
+                assertion_mask_ptr = &assertion_mask[0];
+                assertion_bytes[0] = 0x68;
+                assertion_bytes[1] = line_number;
+                assertion_bytes[2] = line_number >> 8;
+                assertion_bytes[3] = line_number >> 16;
+                assertion_bytes[4] = line_number >> 24;
+                found = Find(assertion_bytes_ptr, assertion_mask_ptr, offset);
+                if (found)
+                    return found;
+            }
+            else {
+                assertion_bytes_ptr = &assertion_bytes[5];
+                assertion_mask_ptr = &assertion_mask[5];
+                found = Find(assertion_bytes_ptr, assertion_mask_ptr, offset);
+                if (found)
+                    return found;
             }
         }
     }
