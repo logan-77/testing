@@ -22,6 +22,7 @@ namespace GW {
         enum class Language;
         enum class MapID : uint32_t;
         enum class QuestID : uint32_t;
+        enum class SkillID : uint32_t;
     }
     namespace Chat {
         enum Channel : int;
@@ -289,7 +290,7 @@ namespace GW {
             kHideAgentNameTag           = 0x10000000 | 0x1A,
             kSetAgentNameTagAttribs     = 0x10000000 | 0x1B, // wparam = AgentNameTagInfo*
             kChangeTarget               = 0x10000000 | 0x20, // wparam = ChangeTargetUIMsg*
-            kAgentStartCasting          = 0x10000000 | 0x27, // wparam = { uint32_t agent_id, uint32_t skill_id }
+            kAgentStartCasting          = 0x10000000 | 0x27, // wparam = UIPacket::kAgentStartCasting*
             kShowMapEntryMessage        = 0x10000000 | 0x29, // wparam = { wchar_t* title, wchar_t* subtitle }
             kSetCurrentPlayerData       = 0x10000000 | 0x2A, // fired after setting the worldcontext player name
             kPostProcessingEffect       = 0x10000000 | 0x34, // Triggered when drunk. wparam = UIPacket::kPostProcessingEffect
@@ -415,6 +416,12 @@ namespace GW {
         enum class EnumPreference : uint32_t;
 
         namespace UIPacket {
+            struct kAgentStartCasting {
+                uint32_t agent_id;
+                Constants::SkillID skill_id;
+                float duration;
+                uint32_t h000c;
+            };
             struct kPreStartSalvage {
                 uint32_t item_id;
                 uint32_t kit_id;
