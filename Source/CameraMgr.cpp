@@ -119,7 +119,7 @@ namespace GW {
     }
 
     bool CameraMgr::SetFog(bool flag) {
-        return patch_fog.IsValid() ? patch_fog.TogglePatch(flag) : false;
+        return patch_fog.IsValid() ? patch_fog.TogglePatch(!flag) : false;
     }
 
     bool CameraMgr::ForwardMovement(float amount, bool true_forward) {
