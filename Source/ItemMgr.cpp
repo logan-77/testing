@@ -604,10 +604,10 @@ namespace GW {
             }
             UI::InteractionMessage message = { 0 };
             message.message_id = GW::UI::UIMessage::kMouseClick2;
-            uint32_t wparam[4] = { 0 };
-            wparam[1] = 1; // Salvage action
-            wparam[2] = 6; // Click event
-            wparam[3] = kit_id;
+            UI::UIPacket::kMouseAction action = { 0 };
+            action.child_frame_id_dupe = 1; // Salvage action
+            action.current_state = 0x6;
+            action.wparam = (void*)kit_id;
 
             uint32_t uictl_struct[7] = { 0 };
             uictl_struct[6] = item_id; // Fake that the current frame context matches the item we want
@@ -615,7 +615,7 @@ namespace GW {
             void* wParam_pt = &uictl_struct;
             message.wParam = &wParam_pt;
 
-            InventorySlot_UICallback_Func(&message, wparam, nullptr);
+            InventorySlot_UICallback_Func(&message, &action, nullptr);
             return true;
         }
 
@@ -626,10 +626,10 @@ namespace GW {
             }
             UI::InteractionMessage message = { 0 };
             message.message_id = GW::UI::UIMessage::kMouseClick2;
-            uint32_t wparam[4] = { 0 };
-            wparam[1] = 2; // Identify action
-            wparam[2] = 6; // Click event
-            wparam[3] = kit_id;
+            UI::UIPacket::kMouseAction action = { 0 };
+            action.child_frame_id_dupe = 2; // Identify action
+            action.current_state = 0x6;
+            action.wparam = (void*)kit_id;
 
             uint32_t uictl_struct[7] = { 0 };
             uictl_struct[6] = item_id; // Fake that the current frame context matches the item we want
@@ -637,7 +637,7 @@ namespace GW {
             void* wParam_pt = &uictl_struct;
             message.wParam = &wParam_pt;
 
-            InventorySlot_UICallback_Func(&message, wparam, nullptr);
+            InventorySlot_UICallback_Func(&message, &action, nullptr);
             return true;
         }
 
