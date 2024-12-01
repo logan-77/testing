@@ -37,8 +37,23 @@ namespace {
     PartySearchButtonCallback_pt PartySearchButtonCallback_Func = 0;
     PartySearchButtonCallback_pt PartyWindowButtonCallback_Func = 0;
 
-    typedef void(__cdecl* DoAction_pt)(uint32_t identifier);
+    uint32_t party_id_selected_override = 0;
+    typedef uint32_t(__fastcall* GetSelectedParty_pt)(void* context, uint32_t edx);
+    GetSelectedParty_pt GetSelectedParty_Func = 0, GetSelectedParty_Ret = 0;
 
+    // Allow overriding the call to get the currently selected party in the roster - used for accepting/rejecting party requests.
+    uint32_t __fastcall OnGetSelectedParty(void* context, uint32_t edx) {
+        GW::Hook::EnterHook();
+        uint32_t ret = party_id_selected_override;
+        if (!ret) {
+            ret = GetSelectedParty_Ret(context, edx);
+        }
+        GW::Hook::LeaveHook();
+        return ret;
+    }
+
+
+    typedef void(__cdecl* DoAction_pt)(uint32_t identifier);
     DoAction_pt SetReadyStatus_Func = 0;
     DoAction_pt SetDifficulty_Func = 0;
 
@@ -116,12 +131,9 @@ namespace {
             SetHeroBehavior_Func = (SetHeroBehavior_pt)Scanner::FunctionFromNearCall(address + 0x7);
         }
 
-        address = Scanner::Find("\x6a\x00\x68\x00\x02\x02\x00\xff\x77\x04", "xxxxxxxxxx");
-        if (Scanner::IsValidPtr(address, ScannerSection::Section_TEXT)) {
-            //PartyRejectInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xb6);
-            //PartyAcceptInvite_Func = (DoAction_pt)Scanner::FunctionFromNearCall(address + 0xcf);
-        }
+        GetSelectedParty_Func = (GetSelectedParty_pt)Scanner::ToFunctionStart(Scanner::FindAssertion("PtJoin.cpp", "selection.memberType == MEMBER_TYPE_INVITE_IN", 0, 0));
 
+        GWCA_INFO("[SCAN] GetSelectedParty_Func = %p", GetSelectedParty_Func);
         GWCA_INFO("[SCAN] TickButtonUICallback Function = %p", TickButtonUICallback);
         GWCA_INFO("[SCAN] SetDifficulty_Func = %p", SetDifficulty_Func);
         GWCA_INFO("[SCAN] PartySearchSeek_Func = %p", PartySearchSeek_Func);
@@ -134,6 +146,7 @@ namespace {
         GWCA_INFO("[SCAN] PartySearchButtonCallback_Func = %p", PartySearchButtonCallback_Func);
 
 #ifdef _DEBUG
+        GWCA_ASSERT(GetSelectedParty_Func);
         GWCA_ASSERT(PartyWindowButtonCallback_Func);
         GWCA_ASSERT(PartySearchButtonCallback_Func);
         GWCA_ASSERT(TickButtonUICallback);
@@ -144,20 +157,34 @@ namespace {
         GWCA_ASSERT(LockPetTarget_Func);
 #endif
         HookBase::CreateHook((void**)&TickButtonUICallback, OnTickButtonUICallback, (void**)&TickButtonUICallback_Ret);
+        if (GetSelectedParty_Func)
+            HookBase::CreateHook((void**)&GetSelectedParty_Func, OnGetSelectedParty, (void**)&GetSelectedParty_Ret);
+    }
+
+    GW::UI::Frame* GetPartyListInvitesFrame() {
+        const auto party_frame = GW::UI::GetFrameByLabel(L"Party");
+        auto sub_frame = GW::UI::GetChildFrame(party_frame, 1);
+        sub_frame = GW::UI::GetChildFrame(sub_frame, 9);
+        return sub_frame;
     }
 
     void EnableHooks() {
+        if (GetSelectedParty_Func)
+            HookBase::EnableHooks(GetSelectedParty_Func);
         if (TickButtonUICallback)
             HookBase::EnableHooks(TickButtonUICallback);
     }
     void DisableHooks() {
+        if (GetSelectedParty_Func)
+            HookBase::DisableHooks(GetSelectedParty_Func);
         if (TickButtonUICallback)
             HookBase::DisableHooks(TickButtonUICallback);
     }
     void Exit() {
         if (TickButtonUICallback)
             HookBase::RemoveHook(TickButtonUICallback);
-
+        if (GetSelectedParty_Func)
+            HookBase::RemoveHook(GetSelectedParty_Func);
     }
 }
 
@@ -305,19 +332,14 @@ namespace GW {
             return false;
         }
         bool RespondToPartyRequest(uint32_t party_id, bool accept) {
-            (party_id, accept);
-            // @Robustness: Cycle invitations, make sure the party is found
-            /*if (accept) {
-                if (!PartyAcceptInvite_Func)
-                    return false;
-                PartyAcceptInvite_Func(party_id);
-            }
-            else {
-                if (!PartyRejectInvite_Func)
-                    return false;
-                PartyRejectInvite_Func(party_id);
-            }*/
-            return true;
+            // @TODO: Make sure the party id is valid!
+            const auto frame = GetPartyListInvitesFrame();
+            if (!(frame && party_id && GetSelectedParty_Func))
+                return false;
+            party_id_selected_override = party_id;
+            bool ok = UI::ButtonClick(UI::GetChildFrame(frame, accept ? 1 : 2));
+            party_id_selected_override = 0;
+            return ok;
         }
 
         bool AddHero(uint32_t heroid) {
@@ -390,9 +412,8 @@ namespace GW {
                 return false;
 
             uint32_t ctx[14] = { 0 };
-            ctx[0x34] = 1; // Pointer to a frame, make sure its not null
             ctx[0xb] = playerid;
-            ctx[0xd] = 0;
+            ctx[0xd] = 1; // Pointer to a frame, make sure its not null;
             ctx[10] = 1;
             ctx[9] = 9;
 
