@@ -239,11 +239,10 @@ namespace GW {
                 const GW::NPC* npc = GW::Agents::GetNPCByID(living->player_number);
                 if (npc && (npc->npc_flags & 0x10000) == 0)
                     return true;
+                return false;
             }
-            else if (const auto gadget = agent->GetAsAgentGadget()) {
-                if (GetAgentEncName(gadget))
-                    return true;
-            }
+            if (GetAgentEncName(agent))
+                return true;
             return false;
         }
         bool SendDialog(uint32_t dialog_id) {
